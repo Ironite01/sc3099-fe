@@ -92,3 +92,87 @@ export async function login(email: string, password: string): Promise<{
         return { success: false, error: 'Unable to connect to server. Please check your connection.' };
     }
 }
+
+/**
+ * Enroll face for identity verification
+ * @param imageBase64 - Base64-encoded face image (without data URL prefix)
+ * @returns Promise with enrollment result
+ */
+export async function enrollFace(imageBase64: string): Promise<{
+    success: boolean;
+    data?: {
+        message: string;
+        face_enrolled: boolean;
+        quality_score: number;
+    };
+    error?: string;
+    status?: number;
+}> {
+    try {
+        const response = await apiFetch('/api/v1/users/me/face/enroll', {
+            method: 'POST',
+            body: { image: imageBase64 },
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, data };
+        }
+
+        // Handle specific error codes
+        if (response.status === 400) {
+            const errorData = await response.json().catch(() => ({}));
+            return { 
+                success: false, 
+                error: errorData.detail || 'No face detected or camera consent not given', 
+                status: 400 
+            };
+        }
+        if (response.status === 401) {
+            return { success: false, error: 'Please log in first', status: 401 };
+        }
+        if (response.status === 503) {
+            return { success: false, error: 'Face recognition service unavailable', status: 503 };
+        }
+
+        return { success: false, error: 'An error occurred. Please try again.', status: response.status };
+    } catch (error) {
+        console.error('Face enrollment error:', error);
+        return { success: false, error: 'Unable to connect to server. Please check your connection.' };
+    }
+}
+
+/**
+ * Update user consent settings
+ * @param cameraConsent - Camera permission consent
+ * @param geolocationConsent - Geolocation permission consent
+ * @returns Promise with update result
+ */
+export async function updateConsent(
+    cameraConsent?: boolean,
+    geolocationConsent?: boolean
+): Promise<{
+    success: boolean;
+    error?: string;
+}> {
+    try {
+        const body: { camera_consent?: boolean; geolocation_consent?: boolean } = {};
+        if (cameraConsent !== undefined) body.camera_consent = cameraConsent;
+        if (geolocationConsent !== undefined) body.geolocation_consent = geolocationConsent;
+
+        const response = await apiFetch('/api/v1/users/me', {
+            method: 'PUT',
+            body,
+        });
+
+        if (response.ok) {
+            return { success: true };
+        }
+
+        return { success: false, error: 'Failed to update consent settings' };
+    } catch (error) {
+        console.error('Update consent error:', error);
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+
