@@ -29,12 +29,6 @@ export default function EnrollPage() {
             });
 
             streamRef.current = stream;
-
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-                await videoRef.current.play();
-            }
-
             setStep('camera');
             setError('');
         } catch (err) {
@@ -42,6 +36,15 @@ export default function EnrollPage() {
             setError('Unable to access camera. Please grant permission and try again.');
         }
     }, []);
+
+    useEffect(() => {
+        if (step === 'camera' && streamRef.current && videoRef.current) {
+            videoRef.current.srcObject = streamRef.current;
+            videoRef.current.play().catch(err => {
+                console.error('Video play error:', err);
+            });
+        }
+    }, [step]);
 
     // Stop camera stream
     const stopCamera = useCallback(() => {
