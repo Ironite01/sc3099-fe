@@ -55,38 +55,33 @@ export function storeAccessToken(token: string): void {
         throw new Error('Invalid token format - tokens should not be URLs');
     }
 
-    switch (currentConfig.accessTokenStrategy) {
-        case 'memory':
-            inMemoryAccessToken = token;
-            break;
-        case 'sessionStorage':
-            sessionStorage.setItem('access_token', token);
-            break;
-        case 'localStorage':
-            // Warn about security implications
-            console.warn(
-                'Warning: Storing access token in localStorage is XSS vulnerable. ' +
-                'Consider using memory or sessionStorage instead.'
-            );
-            localStorage.setItem('access_token', token);
-            break;
+    // Always store in memory
+    inMemoryAccessToken = token;
+
+    // In browser, always store in sessionStorage for persistence across navigations
+    if (typeof window !== 'undefined') {
+        sessionStorage.setItem('access_token', token);
     }
 }
 
 /**
  * Retrieve access token from configured storage
+ * Always checks sessionStorage first when in browser for reliability
  */
 export function getAccessToken(): string | null {
-    switch (currentConfig.accessTokenStrategy) {
-        case 'memory':
-            return inMemoryAccessToken;
-        case 'sessionStorage':
-            return sessionStorage.getItem('access_token');
-        case 'localStorage':
-            return localStorage.getItem('access_token');
-        default:
-            return null;
+    // In browser, always try sessionStorage first (most reliable across navigations)
+    if (typeof window !== 'undefined') {
+        const sessionToken = sessionStorage.getItem('access_token');
+        if (sessionToken) {
+            return sessionToken;
+        }
+        const localToken = localStorage.getItem('access_token');
+        if (localToken) {
+            return localToken;
+        }
     }
+    // Fall back to memory
+    return inMemoryAccessToken;
 }
 
 /**

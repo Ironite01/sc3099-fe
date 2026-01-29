@@ -1,13 +1,22 @@
 /**
  * API Helper for SAIV Frontend
- * 
+ *
  * Provides a reusable fetch wrapper that:
  * - Prepends NEXT_PUBLIC_BACKEND_URL to all paths
  * - Always includes credentials for HttpOnly cookie auth
  * - Sets JSON headers by default
+ * - Includes Authorization header with stored access token
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://localhost:8000';
+import { getAccessToken, storeAccessToken, storeRefreshToken, configureTokenStorage } from './tokenStorage';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
+// Configure token storage to use sessionStorage for persistence across page navigations
+// Only run in browser environment
+if (typeof window !== 'undefined') {
+    configureTokenStorage({ accessTokenStrategy: 'sessionStorage' });
+}
 
 interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
     body?: object | string;
@@ -22,11 +31,14 @@ interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
 export async function apiFetch(path: string, options: ApiFetchOptions = {}): Promise<Response> {
     const { body, headers, ...restOptions } = options;
 
+    const accessToken = getAccessToken();
+
     const config: RequestInit = {
         ...restOptions,
         credentials: 'include', // Always include cookies
         headers: {
             'Content-Type': 'application/json',
+            ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
             ...headers,
         },
     };
@@ -38,6 +50,14 @@ export async function apiFetch(path: string, options: ApiFetchOptions = {}): Pro
 
     const url = `${API_BASE_URL}${path}`;
     return fetch(url, config);
+}
+
+/**
+ * Store tokens after successful login
+ */
+export function saveTokens(accessToken: string, refreshToken: string): void {
+    storeAccessToken(accessToken);
+    storeRefreshToken(refreshToken);
 }
 
 /**
@@ -70,6 +90,8 @@ export async function login(email: string, password: string): Promise<{
 
         if (response.ok) {
             const data = await response.json();
+            // Store tokens for subsequent API calls
+            saveTokens(data.access_token, data.refresh_token);
             return { success: true, data };
         }
 

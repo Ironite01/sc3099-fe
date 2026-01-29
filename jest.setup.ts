@@ -129,6 +129,7 @@ Object.defineProperty(global, 'crypto', {
 
 // Mock TextEncoder
 global.TextEncoder = class TextEncoder {
+    readonly encoding: string = 'utf-8';
     encode(str: string): Uint8Array {
         const arr = new Uint8Array(str.length);
         for (let i = 0; i < str.length; i++) {
@@ -136,7 +137,15 @@ global.TextEncoder = class TextEncoder {
         }
         return arr;
     }
-};
+    encodeInto(str: string, dest: Uint8Array): { read: number; written: number } {
+        const encoded = this.encode(str);
+        const written = Math.min(encoded.length, dest.length);
+        for (let i = 0; i < written; i++) {
+            dest[i] = encoded[i];
+        }
+        return { read: str.length, written };
+    }
+} as unknown as typeof TextEncoder;
 
 // Mock localStorage
 const localStorageMock = {
