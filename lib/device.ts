@@ -38,7 +38,7 @@ export async function generateDeviceFingerprint(): Promise<string> {
         screen.height,
         new Date().getTimezoneOffset(),
         navigator.hardwareConcurrency || 'unknown',
-        navigator.deviceMemory || 'unknown',
+        (navigator as unknown as { deviceMemory?: number }).deviceMemory || 'unknown',
     ];
 
     const fingerprintString = components.join('|');
