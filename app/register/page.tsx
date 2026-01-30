@@ -14,6 +14,23 @@ const isValidEmail = (email: string): boolean => {
     return emailRegex.test(email);
 };
 
+// Password validation helper
+const validatePassword = (password: string): string | null => {
+    if (password.length < 8) {
+        return 'Password must be at least 8 characters';
+    }
+    if (!/[A-Z]/.test(password)) {
+        return 'Password must contain at least 1 uppercase letter';
+    }
+    if (!/[0-9]/.test(password)) {
+        return 'Password must contain at least 1 number';
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+        return 'Password must contain at least 1 special character';
+    }
+    return null;
+};
+
 // SVG Icons
 const EmailIcon = (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -79,12 +96,7 @@ export default function RegisterPage() {
             placeholder: 'Create a password',
             icon: LockIcon,
             autoComplete: 'new-password',
-            validate: (value) => {
-                if (value.length < 8) {
-                    return 'Password must be at least 8 characters';
-                }
-                return null;
-            },
+            validate: (value) => validatePassword(value),
         },
         {
             name: 'confirmPassword',
