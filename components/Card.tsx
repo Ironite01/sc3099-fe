@@ -1,8 +1,9 @@
 'use client';
 
 import { ReactNode } from 'react';
+import { ShieldCheck } from 'lucide-react';
 
-export interface CardProps {
+interface CardProps {
     title: string;
     subtitle: string;
     children: ReactNode;
@@ -10,19 +11,11 @@ export interface CardProps {
     footerContent?: ReactNode;
 }
 
-// Default SAIV shield icon
-const DefaultIcon = (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-        <path d="M9 12l2 2 4-4" />
-    </svg>
-);
-
 export default function Card({
     title,
     subtitle,
     children,
-    icon = DefaultIcon,
+    icon,
     footerContent,
 }: CardProps) {
     return (
@@ -35,7 +28,8 @@ export default function Card({
             <div className="login-card">
                 {/* Header */}
                 <div className="login-header">
-                    <div className="logo">{icon}</div>
+                    {icon !== undefined && <div className="logo">{icon}</div>}
+                    {icon === undefined && <div className="logo"><ShieldCheck size={48} /></div>}
                     <h1>{title}</h1>
                     <p className="tagline">{subtitle}</p>
                 </div>

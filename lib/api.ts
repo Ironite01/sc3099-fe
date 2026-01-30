@@ -1,37 +1,21 @@
-/**
- * API Helper for SAIV Frontend
- * 
- * Provides a reusable fetch wrapper that:
- * - Prepends NEXT_PUBLIC_BACKEND_URL to all paths
- * - Always includes credentials for HttpOnly cookie auth
- * - Sets JSON headers by default
- */
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? '';
 
 interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
     body?: object | string;
 }
 
-/**
- * Fetch wrapper for API calls
- * @param path - API path (e.g., '/api/v1/auth/login')
- * @param options - Fetch options with optional JSON body
- * @returns Promise<Response>
- */
 export async function apiFetch(path: string, options: ApiFetchOptions = {}): Promise<Response> {
     const { body, headers, ...restOptions } = options;
 
     const config: RequestInit = {
         ...restOptions,
-        credentials: 'include', // Always include cookies
+        credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
             ...headers,
         },
     };
 
-    // Handle body - if it's an object, stringify it
     if (body !== undefined) {
         config.body = typeof body === 'string' ? body : JSON.stringify(body);
     }
@@ -40,12 +24,6 @@ export async function apiFetch(path: string, options: ApiFetchOptions = {}): Pro
     return fetch(url, config);
 }
 
-/**
- * Login API call
- * @param email - User email
- * @param password - User password
- * @returns Promise with response data or error
- */
 export async function login(email: string, password: string): Promise<{
     success: boolean;
     data?: {
@@ -63,7 +41,7 @@ export async function login(email: string, password: string): Promise<{
     status?: number;
 }> {
     try {
-        const response = await apiFetch('/api/v1/auth/login', {
+        const response = await apiFetch('/api/user/login', {
             method: 'POST',
             body: { email, password },
         });
@@ -73,7 +51,6 @@ export async function login(email: string, password: string): Promise<{
             return { success: true, data };
         }
 
-        // Handle specific error codes
         if (response.status === 401) {
             return { success: false, error: 'Invalid email or password', status: 401 };
         }
@@ -84,20 +61,13 @@ export async function login(email: string, password: string): Promise<{
             return { success: false, error: 'Account is disabled', status: 403 };
         }
 
-        // Generic error
         return { success: false, error: 'An error occurred. Please try again.', status: response.status };
     } catch (error) {
-        // Network error
         console.error('Login error:', error);
         return { success: false, error: 'Unable to connect to server. Please check your connection.' };
     }
 }
 
-/**
- * Enroll face for identity verification
- * @param imageBase64 - Base64-encoded face image (without data URL prefix)
- * @returns Promise with enrollment result
- */
 export async function enrollFace(imageBase64: string): Promise<{
     success: boolean;
     data?: {
@@ -119,7 +89,6 @@ export async function enrollFace(imageBase64: string): Promise<{
             return { success: true, data };
         }
 
-        // Handle specific error codes
         if (response.status === 400) {
             const errorData = await response.json().catch(() => ({}));
             return {
@@ -142,12 +111,6 @@ export async function enrollFace(imageBase64: string): Promise<{
     }
 }
 
-/**
- * Update user consent settings
- * @param cameraConsent - Camera permission consent
- * @param geolocationConsent - Geolocation permission consent
- * @returns Promise with update result
- */
 export async function updateConsent(
     cameraConsent?: boolean,
     geolocationConsent?: boolean
@@ -176,13 +139,6 @@ export async function updateConsent(
     }
 }
 
-/**
- * Register a new user
- * @param email - User email
- * @param password - User password
- * @param fullName - User's full name
- * @returns Promise with registration result
- */
 export async function register(
     email: string,
     password: string,
@@ -193,7 +149,7 @@ export async function register(
     status?: number;
 }> {
     try {
-        const response = await apiFetch('/api/v1/auth/register', {
+        const response = await apiFetch('/api/user', {
             method: 'POST',
             body: { email, password, full_name: fullName },
         });
@@ -202,7 +158,6 @@ export async function register(
             return { success: true };
         }
 
-        // Handle specific error codes
         if (response.status === 400) {
             const errorData = await response.json().catch(() => ({}));
             return { success: false, error: errorData.detail || 'Invalid registration data', status: 400 };

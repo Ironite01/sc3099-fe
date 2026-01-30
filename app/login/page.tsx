@@ -1,29 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { Mail, Lock } from 'lucide-react';
 import AuthCard, { AuthField } from '@/components/AuthCard';
 import { login } from '@/lib/api';
-
-// Email validation helper
-const isValidEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-};
-
-// SVG Icons
-const EmailIcon = (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-        <polyline points="22,6 12,13 2,6" />
-    </svg>
-);
-
-const LockIcon = (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-);
+import { validateEmail } from '@/lib/validation';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -34,21 +15,16 @@ export default function LoginPage() {
             type: 'email',
             label: 'Email',
             placeholder: 'Enter your email',
-            icon: EmailIcon,
+            icon: <Mail size={20} />,
             autoComplete: 'email',
-            validate: (value) => {
-                if (!isValidEmail(value)) {
-                    return 'Please enter a valid email address';
-                }
-                return null;
-            },
+            validate: validateEmail,
         },
         {
             name: 'password',
             type: 'password',
             label: 'Password',
             placeholder: 'Enter your password',
-            icon: LockIcon,
+            icon: <Lock size={20} />,
             autoComplete: 'current-password',
         },
     ];
@@ -75,7 +51,6 @@ export default function LoginPage() {
                 linkText: "Register",
                 href: "/register",
             }}
-            footerNote="Student Check-in System"
         />
     );
 }

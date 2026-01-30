@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, FormEvent, ReactNode } from 'react';
+import { ReactNode } from 'react';
+import { useForm, SubmitHandler } from 'react-hook-form';
+import { AlertCircle } from 'lucide-react';
 import Card from './Card';
 
 export interface AuthField {
@@ -10,10 +12,10 @@ export interface AuthField {
     placeholder: string;
     icon: ReactNode;
     autoComplete?: string;
-    validate?: (value: string, allValues: Record<string, string>) => string | null;
+    validate?: (value: string, formValues: Record<string, string>) => string | true;
 }
 
-export interface AuthCardProps {
+interface AuthCardProps {
     title: string;
     subtitle: string;
     fields: AuthField[];
@@ -36,70 +38,17 @@ export default function AuthCard({
     footerLink,
     footerNote,
 }: AuthCardProps) {
-    const [values, setValues] = useState<Record<string, string>>(
-        fields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {})
-    );
-    const [errors, setErrors] = useState<Record<string, string>>({});
-    const [generalError, setGeneralError] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+    const {
+        register,
+        handleSubmit,
+        formState: { errors, isSubmitting },
+        setError,
+    } = useForm<Record<string, string>>();
 
-    const handleChange = (name: string, value: string) => {
-        setValues((prev) => ({ ...prev, [name]: value }));
-        // Clear field error on change
-        if (errors[name]) {
-            setErrors((prev) => {
-                const next = { ...prev };
-                delete next[name];
-                return next;
-            });
-        }
-    };
-
-    const validateForm = (): boolean => {
-        const newErrors: Record<string, string> = {};
-        let isValid = true;
-
-        fields.forEach((field) => {
-            const value = values[field.name] || '';
-
-            // Required check
-            if (!value.trim()) {
-                newErrors[field.name] = `${field.label} is required`;
-                isValid = false;
-            } else if (field.validate) {
-                // Custom validation
-                const error = field.validate(value, values);
-                if (error) {
-                    newErrors[field.name] = error;
-                    isValid = false;
-                }
-            }
-        });
-
-        setErrors(newErrors);
-        return isValid;
-    };
-
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault();
-        setGeneralError('');
-
-        if (!validateForm()) {
-            return;
-        }
-
-        setIsLoading(true);
-
-        try {
-            const result = await onSubmit(values);
-
-            if (!result.success) {
-                setGeneralError(result.error || 'An error occurred');
-            }
-        } catch {
-            setGeneralError('An unexpected error occurred');
-        } finally {
-            setIsLoading(false);
+    const processSubmit: SubmitHandler<Record<string, string>> = async (data) => {
+        const result = await onSubmit(data);
+        if (!result.success) {
+            setError('root', { message: result.error || 'An error occurred' });
         }
     };
 
@@ -121,21 +70,14 @@ export default function AuthCard({
             subtitle={subtitle}
             footerContent={footerContent}
         >
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="login-form">
-                {/* General Error */}
-                {generalError && (
+            <form onSubmit={handleSubmit(processSubmit)} className="login-form">
+                {errors.root && (
                     <div className="error-banner" role="alert">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="12" y1="8" x2="12" y2="12" />
-                            <line x1="12" y1="16" x2="12.01" y2="16" />
-                        </svg>
-                        <span>{generalError}</span>
+                        <AlertCircle size={20} />
+                        <span>{errors.root.message}</span>
                     </div>
                 )}
 
-                {/* Dynamic Fields */}
                 {fields.map((field) => (
                     <div key={field.name} className="form-group">
                         <label htmlFor={field.name}>{field.label}</label>
@@ -144,25 +86,33 @@ export default function AuthCard({
                             <input
                                 type={field.type}
                                 id={field.name}
-                                value={values[field.name]}
-                                onChange={(e) => handleChange(field.name, e.target.value)}
                                 placeholder={field.placeholder}
                                 className={errors[field.name] ? 'input-error' : ''}
-                                disabled={isLoading}
+                                disabled={isSubmitting}
                                 autoComplete={field.autoComplete}
+                                {...register(field.name, {
+                                    required: `${field.label} is required`,
+                                    validate: field.validate
+                                        ? (value, formValues) => {
+                                            const result = field.validate!(value, formValues);
+                                            return result === true ? true : result;
+                                        }
+                                        : undefined,
+                                })}
                             />
                         </div>
-                        {errors[field.name] && <span className="field-error">{errors[field.name]}</span>}
+                        {errors[field.name] && (
+                            <span className="field-error">{errors[field.name]?.message}</span>
+                        )}
                     </div>
                 ))}
 
-                {/* Submit Button */}
                 <button
                     type="submit"
                     className="login-button"
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                 >
-                    {isLoading ? (
+                    {isSubmitting ? (
                         <>
                             <span className="spinner"></span>
                             <span>Please wait...</span>
