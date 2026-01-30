@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, FormEvent, ReactNode } from 'react';
+import Card from './Card';
 
 export interface AuthField {
     name: string;
@@ -102,89 +103,75 @@ export default function AuthCard({
         }
     };
 
+    const footerContent = (
+        <>
+            {footerLink && (
+                <p className="auth-link">
+                    {footerLink.text}{' '}
+                    <a href={footerLink.href}>{footerLink.linkText}</a>
+                </p>
+            )}
+            {footerNote && <p>{footerNote}</p>}
+        </>
+    );
+
     return (
-        <main className="login-container">
-            {/* Background gradient orbs */}
-            <div className="bg-orb bg-orb-1"></div>
-            <div className="bg-orb bg-orb-2"></div>
-            <div className="bg-orb bg-orb-3"></div>
-
-            <div className="login-card">
-                {/* Header */}
-                <div className="login-header">
-                    <div className="logo">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                            <path d="M9 12l2 2 4-4" />
+        <Card
+            title={title}
+            subtitle={subtitle}
+            footerContent={footerContent}
+        >
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="login-form">
+                {/* General Error */}
+                {generalError && (
+                    <div className="error-banner" role="alert">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
                         </svg>
+                        <span>{generalError}</span>
                     </div>
-                    <h1>{title}</h1>
-                    <p className="tagline">{subtitle}</p>
-                </div>
+                )}
 
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="login-form">
-                    {/* General Error */}
-                    {generalError && (
-                        <div className="error-banner" role="alert">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10" />
-                                <line x1="12" y1="8" x2="12" y2="12" />
-                                <line x1="12" y1="16" x2="12.01" y2="16" />
-                            </svg>
-                            <span>{generalError}</span>
+                {/* Dynamic Fields */}
+                {fields.map((field) => (
+                    <div key={field.name} className="form-group">
+                        <label htmlFor={field.name}>{field.label}</label>
+                        <div className="input-wrapper">
+                            <span className="input-icon">{field.icon}</span>
+                            <input
+                                type={field.type}
+                                id={field.name}
+                                value={values[field.name]}
+                                onChange={(e) => handleChange(field.name, e.target.value)}
+                                placeholder={field.placeholder}
+                                className={errors[field.name] ? 'input-error' : ''}
+                                disabled={isLoading}
+                                autoComplete={field.autoComplete}
+                            />
                         </div>
+                        {errors[field.name] && <span className="field-error">{errors[field.name]}</span>}
+                    </div>
+                ))}
+
+                {/* Submit Button */}
+                <button
+                    type="submit"
+                    className="login-button"
+                    disabled={isLoading}
+                >
+                    {isLoading ? (
+                        <>
+                            <span className="spinner"></span>
+                            <span>Please wait...</span>
+                        </>
+                    ) : (
+                        <span>{submitLabel}</span>
                     )}
-
-                    {/* Dynamic Fields */}
-                    {fields.map((field) => (
-                        <div key={field.name} className="form-group">
-                            <label htmlFor={field.name}>{field.label}</label>
-                            <div className="input-wrapper">
-                                <span className="input-icon">{field.icon}</span>
-                                <input
-                                    type={field.type}
-                                    id={field.name}
-                                    value={values[field.name]}
-                                    onChange={(e) => handleChange(field.name, e.target.value)}
-                                    placeholder={field.placeholder}
-                                    className={errors[field.name] ? 'input-error' : ''}
-                                    disabled={isLoading}
-                                    autoComplete={field.autoComplete}
-                                />
-                            </div>
-                            {errors[field.name] && <span className="field-error">{errors[field.name]}</span>}
-                        </div>
-                    ))}
-
-                    {/* Submit Button */}
-                    <button
-                        type="submit"
-                        className="login-button"
-                        disabled={isLoading}
-                    >
-                        {isLoading ? (
-                            <>
-                                <span className="spinner"></span>
-                                <span>Please wait...</span>
-                            </>
-                        ) : (
-                            <span>{submitLabel}</span>
-                        )}
-                    </button>
-                </form>
-
-                {/* Footer */}
-                <div className="login-footer">
-                    {footerLink && (
-                        <p className="auth-link">
-                            {footerLink.text}{' '}
-                            <a href={footerLink.href}>{footerLink.linkText}</a>
-                        </p>
-                    )}
-                    {footerNote && <p>{footerNote}</p>}
-                </div>
-            </div>
-        </main>
+                </button>
+            </form>
+        </Card>
     );
 }
