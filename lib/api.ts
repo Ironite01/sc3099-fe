@@ -122,10 +122,10 @@ export async function enrollFace(imageBase64: string): Promise<{
         // Handle specific error codes
         if (response.status === 400) {
             const errorData = await response.json().catch(() => ({}));
-            return { 
-                success: false, 
-                error: errorData.detail || 'No face detected or camera consent not given', 
-                status: 400 
+            return {
+                success: false,
+                error: errorData.detail || 'No face detected or camera consent not given',
+                status: 400
             };
         }
         if (response.status === 401) {
@@ -176,3 +176,44 @@ export async function updateConsent(
     }
 }
 
+/**
+ * Register a new user
+ * @param email - User email
+ * @param password - User password
+ * @param fullName - User's full name
+ * @returns Promise with registration result
+ */
+export async function register(
+    email: string,
+    password: string,
+    fullName: string
+): Promise<{
+    success: boolean;
+    error?: string;
+    status?: number;
+}> {
+    try {
+        const response = await apiFetch('/api/v1/auth/register', {
+            method: 'POST',
+            body: { email, password, full_name: fullName },
+        });
+
+        if (response.ok) {
+            return { success: true };
+        }
+
+        // Handle specific error codes
+        if (response.status === 400) {
+            const errorData = await response.json().catch(() => ({}));
+            return { success: false, error: errorData.detail || 'Invalid registration data', status: 400 };
+        }
+        if (response.status === 409) {
+            return { success: false, error: 'An account with this email already exists', status: 409 };
+        }
+
+        return { success: false, error: 'An error occurred. Please try again.', status: response.status };
+    } catch (error) {
+        console.error('Registration error:', error);
+        return { success: false, error: 'Unable to connect to server. Please check your connection.' };
+    }
+}

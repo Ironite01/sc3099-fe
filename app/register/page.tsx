@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import AuthCard, { AuthField } from '@/components/AuthCard';
-import { login } from '@/lib/api';
+import { register } from '@/lib/api';
 
 // Email validation helper
 const isValidEmail = (email: string): boolean => {
@@ -25,10 +25,25 @@ const LockIcon = (
     </svg>
 );
 
-export default function LoginPage() {
+const UserIcon = (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+    </svg>
+);
+
+export default function RegisterPage() {
     const router = useRouter();
 
     const fields: AuthField[] = [
+        {
+            name: 'fullName',
+            type: 'text',
+            label: 'Full Name',
+            placeholder: 'Enter your full name',
+            icon: UserIcon,
+            autoComplete: 'name',
+        },
         {
             name: 'email',
             type: 'email',
@@ -47,17 +62,38 @@ export default function LoginPage() {
             name: 'password',
             type: 'password',
             label: 'Password',
-            placeholder: 'Enter your password',
+            placeholder: 'Create a password',
             icon: LockIcon,
-            autoComplete: 'current-password',
+            autoComplete: 'new-password',
+            validate: (value) => {
+                if (value.length < 8) {
+                    return 'Password must be at least 8 characters';
+                }
+                return null;
+            },
+        },
+        {
+            name: 'confirmPassword',
+            type: 'password',
+            label: 'Confirm Password',
+            placeholder: 'Confirm your password',
+            icon: LockIcon,
+            autoComplete: 'new-password',
+            validate: (value, allValues) => {
+                if (value !== allValues.password) {
+                    return 'Passwords do not match';
+                }
+                return null;
+            },
         },
     ];
 
     const handleSubmit = async (values: Record<string, string>) => {
-        const result = await login(values.email, values.password);
+        const result = await register(values.email, values.password, values.fullName);
 
         if (result.success) {
-            router.push('/');
+            // Redirect to login after successful registration
+            router.push('/login');
         }
 
         return result;
@@ -66,14 +102,14 @@ export default function LoginPage() {
     return (
         <AuthCard
             title="SAIV"
-            subtitle="Secure Attendance & Identity Verification"
+            subtitle="Create Your Account"
             fields={fields}
-            submitLabel="Sign In"
+            submitLabel="Register"
             onSubmit={handleSubmit}
             footerLink={{
-                text: "Don't have an account?",
-                linkText: "Register",
-                href: "/register",
+                text: "Already have an account?",
+                linkText: "Sign In",
+                href: "/login",
             }}
             footerNote="Student Check-in System"
         />
