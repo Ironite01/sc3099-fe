@@ -35,3 +35,8 @@ coverage
 # OS
 .DS_Store
 Thumbs.db
+
+# PWA
+public/sw.js
+public/workbox-*.js
+public/worker-*.js
