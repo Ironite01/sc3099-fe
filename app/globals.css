@@ -1071,7 +1071,17 @@ body {
 .liveness-container {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+}
+
+.liveness-container .camera-preview {
+  width: 100%;
+  max-width: 350px;
+  aspect-ratio: 3/4;
+  border-radius: 24px;
+  border: 3px solid var(--color-primary);
 }
 
 .liveness-challenge {
@@ -1080,6 +1090,8 @@ body {
   padding: 1.5rem;
   text-align: center;
   border: 1px solid var(--border-color);
+  width: 100%;
+  max-width: 350px;
 }
 
 .liveness-progress-bar {
@@ -1488,4 +1500,242 @@ body {
 .capture-hint {
   color: var(--color-text-secondary);
   font-size: 0.875rem;
+}
+
+/* ============================================
+   Step-by-Step Consent Styles
+   ============================================ */
+
+.consent-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.consent-step {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--color-bg-input);
+  border-radius: 12px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.consent-step.step-active {
+  border-color: var(--color-primary);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.consent-step.step-complete {
+  border-color: var(--color-success);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.consent-step .step-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.step-active .step-icon {
+  background: var(--color-primary);
+  color: white;
+}
+
+.step-complete .step-icon {
+  background: var(--color-success);
+  color: white;
+}
+
+.consent-step .step-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: left;
+}
+
+.consent-step .step-content strong {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.consent-step .step-content span {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.step-action-button {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  background: var(--color-primary);
+  border: none;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.step-action-button:hover {
+  background: var(--color-primary-dark);
+}
+
+.step-action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.step-granted {
+  font-size: 0.75rem;
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.consent-error {
+  padding: 0.75rem 1rem;
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error);
+  border-radius: 8px;
+  color: var(--color-error);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+/* ============================================
+   Course Card with Action Button
+   ============================================ */
+
+.course-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.course-card:hover {
+  border-color: var(--color-primary);
+}
+
+.course-card-content {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.course-action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  border: none;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.course-action-button:hover {
+  filter: brightness(1.1);
+}
+
+.course-action-button:active {
+  transform: scale(0.98);
+}
+
+/* ============================================
+   Section Description
+   ============================================ */
+
+.section-description {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.loading-subtext {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+/* ============================================
+   Face Guide Overlay
+   ============================================ */
+
+.face-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.face-guide {
+  width: 180px;
+  height: 220px;
+  border: 3px solid var(--color-primary);
+  border-radius: 50%;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================
+   Selectable Course Cards for Registration
+   ============================================ */
+
+.selectable-course-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem;
+  background: var(--color-bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.selectable-course-card:hover {
+  border-color: var(--color-primary);
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.selectable-course-card.selected {
+  border-color: var(--color-primary);
+  background: rgba(99, 102, 241, 0.15);
+}
+
+.selectable-course-card .course-code {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-transform: uppercase;
+}
+
+.selectable-course-card .course-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.selectable-course-card .course-instructor,
+.selectable-course-card .course-schedule {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
 }

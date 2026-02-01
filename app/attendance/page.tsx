@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import PageHeader from '@/components/PageHeader';
 import ConsentModal from '@/components/ConsentModal';
@@ -22,16 +22,21 @@ type AttendanceStep =
     | 'success'
     | 'error';
 
+type ConsentStep = 'intro' | 'location' | 'camera' | 'ready';
+
 function AttendanceContent() {
     const searchParams = useSearchParams();
     const preselectedCourseId = searchParams.get('courseId');
 
     const [step, setStep] = useState<AttendanceStep>('loading');
+    const [consentStep, setConsentStep] = useState<ConsentStep>('location');
     const [courses, setCourses] = useState<Course[]>([]);
     const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
     const [location, setLocation] = useState<GeolocationCoords | null>(null);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [locationGranted, setLocationGranted] = useState(false);
+    const [cameraGranted, setCameraGranted] = useState(false);
 
     const camera = useCamera();
     const geo = useGeolocation();
@@ -40,7 +45,7 @@ function AttendanceContent() {
         challengeDuration: 5000,
         onComplete: () => setStep('capture'),
         onFail: () => {
-            setError('Liveness verification timed out');
+            setError('Liveness verification timed out. Please try again.');
             setStep('error');
         },
     });
@@ -77,28 +82,39 @@ function AttendanceContent() {
         setStep('consent');
     };
 
-    const handleConsentAccept = async () => {
+    const handleRequestLocation = useCallback(async () => {
         const locationResult = await geo.requestLocation();
 
-        if (!locationResult) {
-            setError(geo.error || 'Location access required');
-            setStep('error');
-            return;
+        if (locationResult) {
+            setLocation(locationResult);
+            setLocationGranted(true);
+            setConsentStep('camera');
+        } else {
+            setError(geo.error || 'Location access denied');
         }
+    }, [geo]);
 
-        setLocation(locationResult);
-
+    const handleRequestCamera = useCallback(async () => {
         await camera.startCamera();
 
         if (camera.error) {
             setError(camera.error);
-            setStep('error');
-            return;
+        } else {
+            setCameraGranted(true);
+            setConsentStep('ready');
         }
+    }, [camera]);
 
+    const handleConsentComplete = useCallback(() => {
         liveness.startChallenge();
         setStep('liveness');
-    };
+    }, [liveness]);
+
+    useEffect(() => {
+        if ((step === 'liveness' || step === 'capture') && camera.isActive && camera.videoRef.current) {
+            camera.videoRef.current.play().catch(console.error);
+        }
+    }, [step, camera.isActive, camera.videoRef]);
 
     const handleCapture = () => {
         const image = camera.capturePhoto();
@@ -145,7 +161,23 @@ function AttendanceContent() {
         setCapturedImage(null);
         liveness.reset();
         camera.stopCamera();
+        setConsentStep('location');
+        setLocationGranted(false);
+        setCameraGranted(false);
         setStep('consent');
+    };
+
+    const getPageTitle = () => {
+        switch (step) {
+            case 'select-course': return 'Select Course';
+            case 'consent': return 'Permissions';
+            case 'liveness': return 'Liveness Check';
+            case 'capture': return 'Face Capture';
+            case 'submitting': return 'Verifying';
+            case 'success': return 'Success';
+            case 'error': return 'Error';
+            default: return selectedCourse?.code || 'Attendance';
+        }
     };
 
     return (
@@ -154,7 +186,7 @@ function AttendanceContent() {
             <div className="bg-orb bg-orb-2" />
 
             <PageHeader
-                title={step === 'select-course' ? 'Take Attendance' : selectedCourse?.code || 'Attendance'}
+                title={getPageTitle()}
                 backHref="/courses"
             />
 
@@ -169,6 +201,7 @@ function AttendanceContent() {
                 {step === 'select-course' && (
                     <div className="course-select-container">
                         <h2>Select a Course</h2>
+                        <p className="section-description">Choose the course to take attendance for</p>
                         <div className="courses-list">
                             {courses.map(course => (
                                 <button
@@ -186,11 +219,15 @@ function AttendanceContent() {
 
                 {step === 'consent' && (
                     <ConsentModal
-                        requireCamera
-                        requireLocation
-                        onAccept={handleConsentAccept}
+                        step={consentStep}
+                        onRequestLocation={handleRequestLocation}
+                        onRequestCamera={handleRequestCamera}
+                        onComplete={handleConsentComplete}
                         onDecline={() => window.history.back()}
+                        locationGranted={locationGranted}
+                        cameraGranted={cameraGranted}
                         isLoading={geo.isLoading}
+                        error={error}
                     />
                 )}
 
@@ -229,7 +266,7 @@ function AttendanceContent() {
                                 <div className="face-guide" />
                             </div>
                         </div>
-                        <p className="capture-hint">Position your face and tap to verify</p>
+                        <p className="capture-hint">Position your face in the circle and tap the button</p>
                         <button className="capture-button" onClick={handleCapture}>
                             <span className="capture-icon" />
                         </button>
@@ -240,14 +277,15 @@ function AttendanceContent() {
                     <div className="loading-state">
                         <div className="spinner large" />
                         <p>Verifying your attendance...</p>
+                        <p className="loading-subtext">Checking face match and location</p>
                     </div>
                 )}
 
                 {step === 'success' && (
                     <StatusResult
                         success
-                        title="Attendance Recorded"
-                        message="Your attendance has been successfully recorded."
+                        title="Attendance Recorded!"
+                        message="Your attendance has been successfully verified and recorded."
                         details={`${selectedCourse?.code} - ${selectedCourse?.name}`}
                         homeHref="/courses"
                     />

@@ -76,7 +76,7 @@ export default function CoursesPage() {
                     <>
                         <section className="courses-section">
                             <div className="section-header">
-                                <h2>Take Attendance</h2>
+                                <h2>My Enrolled Courses</h2>
                                 <button
                                     className="text-button"
                                     onClick={() => router.push('/courses/register')}
@@ -103,7 +103,7 @@ export default function CoursesPage() {
                                         <CourseCard
                                             key={course.id}
                                             course={course}
-                                            onClick={() => handleAttendance(course.id)}
+                                            onTakeAttendance={() => handleAttendance(course.id)}
                                         />
                                     ))}
                                 </div>

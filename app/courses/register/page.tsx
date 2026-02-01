@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Search, BookOpen } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import CourseCard from '@/components/CourseCard';
 import StatusResult from '@/components/StatusResult';
 import { getAvailableCourses, registerForCourse } from '@/lib/api';
 import type { Course } from '@/lib/types';
@@ -143,12 +142,17 @@ export default function CourseRegisterPage() {
                 ) : (
                     <div className="courses-grid">
                         {filteredCourses.map(course => (
-                            <CourseCard
+                            <button
                                 key={course.id}
-                                course={course}
-                                selected={selectedCourse?.id === course.id}
+                                className={`selectable-course-card ${selectedCourse?.id === course.id ? 'selected' : ''}`}
                                 onClick={() => setSelectedCourse(course)}
-                            />
+                                type="button"
+                            >
+                                <span className="course-code">{course.code}</span>
+                                <span className="course-name">{course.name}</span>
+                                <span className="course-instructor">{course.instructor}</span>
+                                <span className="course-schedule">{course.schedule}</span>
+                            </button>
                         ))}
                     </div>
                 )}

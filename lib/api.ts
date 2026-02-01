@@ -177,8 +177,14 @@ export async function updateConsent(
 }
 
 import type { Course, AttendancePayload, AttendanceResult, ApiResponse } from './types';
+import { MOCK_ENROLLED_COURSES, MOCK_AVAILABLE_COURSES, USE_MOCK_DATA } from './mockData';
 
 export async function getMyCourses(): Promise<ApiResponse<Course[]>> {
+    if (USE_MOCK_DATA) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return { success: true, data: MOCK_ENROLLED_COURSES };
+    }
+
     try {
         const response = await apiFetch('/api/v1/courses/enrolled');
 
@@ -199,6 +205,11 @@ export async function getMyCourses(): Promise<ApiResponse<Course[]>> {
 }
 
 export async function getAvailableCourses(): Promise<ApiResponse<Course[]>> {
+    if (USE_MOCK_DATA) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return { success: true, data: MOCK_AVAILABLE_COURSES };
+    }
+
     try {
         const response = await apiFetch('/api/v1/courses/available');
 
@@ -215,6 +226,11 @@ export async function getAvailableCourses(): Promise<ApiResponse<Course[]>> {
 }
 
 export async function registerForCourse(courseId: string): Promise<ApiResponse<{ message: string }>> {
+    if (USE_MOCK_DATA) {
+        await new Promise(resolve => setTimeout(resolve, 800));
+        return { success: true, data: { message: 'Registration submitted for approval' } };
+    }
+
     try {
         const response = await apiFetch('/api/v1/courses/register', {
             method: 'POST',
@@ -238,6 +254,20 @@ export async function registerForCourse(courseId: string): Promise<ApiResponse<{
 }
 
 export async function submitAttendance(payload: AttendancePayload): Promise<ApiResponse<AttendanceResult>> {
+    if (USE_MOCK_DATA) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        const course = MOCK_ENROLLED_COURSES.find(c => c.id === payload.course_id);
+        return {
+            success: true,
+            data: {
+                success: true,
+                message: 'Attendance recorded successfully',
+                timestamp: new Date().toISOString(),
+                course_name: course?.name || 'Unknown Course',
+            }
+        };
+    }
+
     try {
         const response = await apiFetch('/api/v1/attendance/submit', {
             method: 'POST',

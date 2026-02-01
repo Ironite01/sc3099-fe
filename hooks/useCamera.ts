@@ -93,6 +93,13 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
         };
     }, []);
 
+    useEffect(() => {
+        if (isActive && streamRef.current && videoRef.current && !videoRef.current.srcObject) {
+            videoRef.current.srcObject = streamRef.current;
+            videoRef.current.play().catch(console.error);
+        }
+    });
+
     return {
         videoRef,
         canvasRef,
