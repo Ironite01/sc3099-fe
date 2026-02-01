@@ -11,26 +11,26 @@
   --color-primary: #6366f1;
   --color-primary-dark: #4f46e5;
   --color-primary-light: #818cf8;
-  
+
   /* Accent Colors */
   --color-accent: #ec4899;
   --color-accent-light: #f472b6;
-  
+
   /* Background Colors */
   --color-bg-dark: #0f172a;
   --color-bg-card: rgba(30, 41, 59, 0.8);
   --color-bg-input: rgba(15, 23, 42, 0.6);
-  
+
   /* Text Colors */
   --color-text-primary: #f8fafc;
   --color-text-secondary: #94a3b8;
   --color-text-muted: #64748b;
-  
+
   /* Status Colors */
   --color-error: #ef4444;
   --color-error-bg: rgba(239, 68, 68, 0.1);
   --color-success: #22c55e;
-  
+
   /* Borders & Effects */
   --border-color: rgba(148, 163, 184, 0.2);
   --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.3);
@@ -111,15 +111,20 @@ body {
 }
 
 @keyframes float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translate(0, 0) scale(1);
   }
+
   25% {
     transform: translate(20px, -30px) scale(1.05);
   }
+
   50% {
     transform: translate(-10px, 20px) scale(0.95);
   }
+
   75% {
     transform: translate(-30px, -10px) scale(1.02);
   }
@@ -146,6 +151,7 @@ body {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -177,9 +183,12 @@ body {
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
   }
+
   50% {
     box-shadow: 0 0 0 15px rgba(99, 102, 241, 0);
   }
@@ -228,11 +237,27 @@ body {
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-5px); }
-  40% { transform: translateX(5px); }
-  60% { transform: translateX(-5px); }
-  80% { transform: translateX(5px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20% {
+    transform: translateX(-5px);
+  }
+
+  40% {
+    transform: translateX(5px);
+  }
+
+  60% {
+    transform: translateX(-5px);
+  }
+
+  80% {
+    transform: translateX(5px);
+  }
 }
 
 /* Form Group */
@@ -286,7 +311,7 @@ body {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 
-.input-wrapper input:focus + .input-icon,
+.input-wrapper input:focus+.input-icon,
 .input-wrapper:focus-within .input-icon {
   color: var(--color-primary);
 }
@@ -382,31 +407,31 @@ body {
     padding: 2rem 1.5rem;
     border-radius: 20px;
   }
-  
+
   .logo {
     width: 56px;
     height: 56px;
   }
-  
+
   .logo svg {
     width: 32px;
     height: 32px;
   }
-  
+
   .login-header h1 {
     font-size: 1.75rem;
   }
-  
+
   .bg-orb-1 {
     width: 250px;
     height: 250px;
   }
-  
+
   .bg-orb-2 {
     width: 200px;
     height: 200px;
   }
-  
+
   .bg-orb-3 {
     width: 150px;
     height: 150px;
@@ -641,7 +666,8 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scaleX(-1); /* Mirror for selfie mode */
+  transform: scaleX(-1);
+  /* Mirror for selfie mode */
   display: block;
 }
 
@@ -666,9 +692,12 @@ body {
 }
 
 @keyframes pulse-guide {
-  0%, 100% {
+
+  0%,
+  100% {
     border-color: rgba(255, 255, 255, 0.5);
   }
+
   50% {
     border-color: rgba(99, 102, 241, 0.8);
   }
@@ -837,20 +866,626 @@ body {
   .enroll-card {
     padding: 1.5rem;
   }
-  
+
   .camera-container,
   .preview-container {
     max-width: 280px;
   }
-  
+
   .capture-button {
     width: 64px;
     height: 64px;
   }
-  
+
   .capture-icon {
     width: 32px;
     height: 32px;
   }
 }
 
+/* ============================================
+   Page Layout Styles
+   ============================================ */
+
+.page-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.page-content {
+  flex: 1;
+  padding: 1rem;
+  padding-bottom: 100px;
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.page-content.centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================
+   Page Header Component
+   ============================================ */
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.page-header-left,
+.page-header-right {
+  width: 48px;
+  display: flex;
+  align-items: center;
+}
+
+.page-header-right {
+  justify-content: flex-end;
+}
+
+.page-header-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.back-button,
+.icon-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.back-button:hover,
+.icon-button:hover {
+  background: var(--color-bg-input);
+  border-color: var(--color-primary);
+}
+
+/* ============================================
+   Consent Modal Component
+   ============================================ */
+
+.consent-modal {
+  background: var(--color-bg-card);
+  border-radius: 20px;
+  padding: 2rem;
+  border: 1px solid var(--border-color);
+  text-align: center;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.consent-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+}
+
+.consent-shield-icon {
+  color: white;
+}
+
+.consent-modal h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.consent-description {
+  color: var(--color-text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.consent-permissions-list {
+  list-style: none;
+  text-align: left;
+  margin-bottom: 1.5rem;
+}
+
+.consent-permissions-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--color-bg-input);
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+}
+
+.consent-permissions-list li>svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.consent-permissions-list li div {
+  display: flex;
+  flex-direction: column;
+}
+
+.consent-permissions-list li strong {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.consent-permissions-list li span {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.consent-privacy-note {
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.consent-privacy-note p {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.consent-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.consent-actions .primary-button,
+.consent-actions .secondary-button {
+  flex: 1;
+}
+
+/* ============================================
+   Liveness Challenge Component
+   ============================================ */
+
+.liveness-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.liveness-challenge {
+  background: var(--color-bg-card);
+  border-radius: 20px;
+  padding: 1.5rem;
+  text-align: center;
+  border: 1px solid var(--border-color);
+}
+
+.liveness-progress-bar {
+  height: 4px;
+  background: var(--color-bg-input);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.liveness-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  transition: width 0.1s linear;
+}
+
+.liveness-step-indicator {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1rem;
+}
+
+.liveness-icon-wrapper {
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: white;
+}
+
+.liveness-instruction {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.liveness-hint {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.liveness-action-button {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  border: none;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.liveness-action-button:hover {
+  transform: scale(1.02);
+}
+
+.liveness-action-button:active {
+  transform: scale(0.98);
+}
+
+/* ============================================
+   Course Card Component
+   ============================================ */
+
+.courses-section {
+  margin-bottom: 2rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.section-header h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.text-button {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.courses-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.course-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.course-card:hover {
+  border-color: var(--color-primary);
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.course-card-selected {
+  border-color: var(--color-primary);
+  background: rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.course-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.course-code {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: rgba(99, 102, 241, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.course-status {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-pending {
+  color: #f59e0b;
+}
+
+.status-approved {
+  color: var(--color-success);
+}
+
+.status-rejected {
+  color: var(--color-error);
+}
+
+.course-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.course-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.course-detail {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.course-detail svg {
+  color: var(--color-text-muted);
+}
+
+/* ============================================
+   Status Result Component
+   ============================================ */
+
+.status-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+  padding: 2rem;
+}
+
+.status-icon-wrapper {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-icon-wrapper.status-success {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--color-success);
+}
+
+.status-icon-wrapper.status-error {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.status-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.status-message {
+  color: var(--color-text-secondary);
+}
+
+.status-details {
+  font-size: 0.875rem;
+  color: var(--color-primary);
+  background: rgba(99, 102, 241, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+}
+
+.status-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.status-actions .primary-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ============================================
+   Search Component
+   ============================================ */
+
+.search-container {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+}
+
+.search-input {
+  width: 100%;
+  padding: 1rem 1rem 1rem 3rem;
+  background: var(--color-bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.search-input:focus {
+  border-color: var(--color-primary);
+}
+
+.search-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* ============================================
+   Empty & Loading States
+   ============================================ */
+
+.loading-state,
+.empty-state,
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1rem;
+  padding: 3rem 1rem;
+  color: var(--color-text-secondary);
+}
+
+.empty-state svg,
+.error-state svg {
+  color: var(--color-text-muted);
+}
+
+/* ============================================
+   Fixed Bottom Action
+   ============================================ */
+
+.fixed-bottom-action {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  background: linear-gradient(to top, var(--color-bg-dark) 0%, transparent 100%);
+  padding-top: 3rem;
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* ============================================
+   Course Select List
+   ============================================ */
+
+.course-select-container h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.courses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.course-select-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 1rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  text-align: left;
+}
+
+.course-select-item:hover {
+  border-color: var(--color-primary);
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.course-select-item .course-code {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.course-select-item .course-name {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+/* ============================================
+   Camera Preview for Attendance
+   ============================================ */
+
+.camera-preview {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 4/3;
+  margin: 0 auto;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--color-bg-input);
+}
+
+.camera-preview .camera-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.capture-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.capture-hint {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}

@@ -122,10 +122,10 @@ export async function enrollFace(imageBase64: string): Promise<{
         // Handle specific error codes
         if (response.status === 400) {
             const errorData = await response.json().catch(() => ({}));
-            return { 
-                success: false, 
-                error: errorData.detail || 'No face detected or camera consent not given', 
-                status: 400 
+            return {
+                success: false,
+                error: errorData.detail || 'No face detected or camera consent not given',
+                status: 400
             };
         }
         if (response.status === 401) {
@@ -176,3 +176,99 @@ export async function updateConsent(
     }
 }
 
+import type { Course, AttendancePayload, AttendanceResult, ApiResponse } from './types';
+
+export async function getMyCourses(): Promise<ApiResponse<Course[]>> {
+    try {
+        const response = await apiFetch('/api/v1/courses/enrolled');
+
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, data };
+        }
+
+        if (response.status === 401) {
+            return { success: false, error: 'Please log in first', status: 401 };
+        }
+
+        return { success: false, error: 'Failed to fetch courses', status: response.status };
+    } catch (error) {
+        console.error('Get courses error:', error);
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+
+export async function getAvailableCourses(): Promise<ApiResponse<Course[]>> {
+    try {
+        const response = await apiFetch('/api/v1/courses/available');
+
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, data };
+        }
+
+        return { success: false, error: 'Failed to fetch available courses', status: response.status };
+    } catch (error) {
+        console.error('Get available courses error:', error);
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+
+export async function registerForCourse(courseId: string): Promise<ApiResponse<{ message: string }>> {
+    try {
+        const response = await apiFetch('/api/v1/courses/register', {
+            method: 'POST',
+            body: { course_id: courseId },
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, data };
+        }
+
+        if (response.status === 409) {
+            return { success: false, error: 'Already registered for this course', status: 409 };
+        }
+
+        return { success: false, error: 'Failed to register for course', status: response.status };
+    } catch (error) {
+        console.error('Register course error:', error);
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+
+export async function submitAttendance(payload: AttendancePayload): Promise<ApiResponse<AttendanceResult>> {
+    try {
+        const response = await apiFetch('/api/v1/attendance/submit', {
+            method: 'POST',
+            body: payload,
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, data };
+        }
+
+        if (response.status === 400) {
+            const errorData = await response.json().catch(() => ({}));
+            return {
+                success: false,
+                error: errorData.detail || 'Invalid attendance submission',
+                status: 400
+            };
+        }
+
+        if (response.status === 401) {
+            return { success: false, error: 'Please log in first', status: 401 };
+        }
+
+        if (response.status === 403) {
+            return { success: false, error: 'Face verification failed', status: 403 };
+        }
+
+        return { success: false, error: 'Failed to submit attendance', status: response.status };
+    } catch (error) {
+        console.error('Submit attendance error:', error);
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
