@@ -13,11 +13,11 @@ interface LivenessChallengeProps {
 }
 
 const CHALLENGE_ICONS: Record<LivenessChallengeType['type'], React.ReactNode> = {
-    blink: <Eye size={64} />,
-    turn_left: <MoveLeft size={64} />,
-    turn_right: <MoveRight size={64} />,
-    smile: <Smile size={64} />,
-    nod: <ArrowDown size={64} />,
+    blink: <Eye size={20} />,
+    turn_left: <MoveLeft size={20} />,
+    turn_right: <MoveRight size={20} />,
+    smile: <Smile size={20} />,
+    nod: <ArrowDown size={20} />,
 };
 
 export default function LivenessChallenge({
@@ -43,29 +43,12 @@ export default function LivenessChallenge({
 
     return (
         <div className="liveness-challenge">
-            <div className="liveness-progress-bar">
-                <div
-                    className="liveness-progress-fill"
-                    style={{ width: `${progress}%` }}
-                />
+            <div className="liveness-instruction-wrapper">
+                <span className="liveness-icon">{CHALLENGE_ICONS[challenge.type]}</span>
+                <span className="liveness-instruction">{challenge.instruction}</span>
             </div>
-
-            <div className="liveness-step-indicator">
-                Challenge {challengeIndex + 1} of {totalChallenges}
-            </div>
-
-            <div className="liveness-icon-wrapper">
-                {CHALLENGE_ICONS[challenge.type]}
-            </div>
-
-            <h2 className="liveness-instruction">{challenge.instruction}</h2>
-
-            <p className="liveness-hint">
-                Perform the action, then tap the button below
-            </p>
-
             <button
-                className="liveness-action-button"
+                className="liveness-done-button"
                 onClick={onActionDetected}
             >
                 Done

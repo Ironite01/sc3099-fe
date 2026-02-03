@@ -241,6 +241,9 @@ function AttendanceContent() {
                                 muted
                                 className="camera-video"
                             />
+                            <div className="face-overlay">
+                                <div className="face-guide" />
+                            </div>
                         </div>
                         <LivenessChallengeComponent
                             challenge={liveness.currentChallenge}
