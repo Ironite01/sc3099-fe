@@ -110,7 +110,7 @@ export default function ConsentModal({
                         className="primary-button"
                         onClick={onComplete}
                     >
-                        Continue to Verification
+                        Continue
                     </button>
                 )}
             </div>

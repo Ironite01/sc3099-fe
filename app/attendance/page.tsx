@@ -256,7 +256,7 @@ function AttendanceContent() {
                 )}
 
                 {step === 'capture' && (
-                    <div className="capture-container">
+                    <div className="liveness-container">
                         <div className="camera-preview">
                             <video
                                 ref={camera.videoRef}
@@ -269,10 +269,14 @@ function AttendanceContent() {
                                 <div className="face-guide" />
                             </div>
                         </div>
-                        <p className="capture-hint">Position your face in the circle and tap the button</p>
-                        <button className="capture-button" onClick={handleCapture}>
-                            <span className="capture-icon" />
-                        </button>
+                        <div className="liveness-challenge capture-step">
+                            <div className="liveness-instruction-wrapper">
+                                <span className="liveness-instruction">Hold still to capture</span>
+                            </div>
+                            <button className="liveness-done-button" onClick={handleCapture}>
+                                Capture
+                            </button>
+                        </div>
                     </div>
                 )}
 

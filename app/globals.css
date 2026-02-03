@@ -1772,3 +1772,51 @@ body {
   position: relative;
   overflow: hidden;
 }
+
+/* ============================================
+   Slim Button Styles
+   ============================================ */
+
+.primary-button {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.primary-button:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+
+.secondary-button {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--border-color);
+  padding: 0.6rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondary-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-primary);
+}
+
+/* Capture Step - Green accent to indicate final step */
+.liveness-challenge.capture-step {
+  border-color: var(--color-success);
+}
+
+.liveness-challenge.capture-step .liveness-done-button {
+  background: var(--color-success);
+  color: white;
+}

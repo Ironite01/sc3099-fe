@@ -5,7 +5,7 @@ export const MOCK_ENROLLED_COURSES: Course[] = [
         id: '1',
         code: 'CS3099',
         name: 'Secure Attendance System Project',
-        instructor: 'Dr. Ironite',
+        instructor: 'Dr. Wilson',
         schedule: 'Mon & Wed 2:00 PM',
         status: 'approved',
     },
