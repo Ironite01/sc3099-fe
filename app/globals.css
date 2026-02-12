@@ -972,22 +972,23 @@ body {
 .consent-modal {
   background: var(--color-bg-card);
   border-radius: 20px;
-  padding: 2rem;
+  padding: 1.5rem;
   border: 1px solid var(--border-color);
   text-align: center;
   max-width: 400px;
+  width: 100%;
   margin: 0 auto;
 }
 
 .consent-icon-wrapper {
-  width: 80px;
-  height: 80px;
+  width: 64px;
+  height: 64px;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 1.5rem;
+  margin: 0 auto 1rem;
 }
 
 .consent-shield-icon {
@@ -995,14 +996,15 @@ body {
 }
 
 .consent-modal h2 {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .consent-description {
   color: var(--color-text-secondary);
-  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
 }
 
 .consent-permissions-list {
@@ -1525,8 +1527,9 @@ body {
 .consent-step {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   padding: 1rem;
+  min-height: 72px;
   background: var(--color-bg-input);
   border-radius: 12px;
   border: 1px solid transparent;
@@ -1583,7 +1586,8 @@ body {
 }
 
 .step-action-button {
-  padding: 0.5rem 1rem;
+  width: 72px;
+  padding: 0.5rem 0;
   border-radius: 8px;
   background: var(--color-primary);
   border: none;
@@ -1592,6 +1596,8 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  flex-shrink: 0;
+  text-align: center;
 }
 
 .step-action-button:hover {
@@ -1604,9 +1610,12 @@ body {
 }
 
 .step-granted {
+  width: 72px;
   font-size: 0.75rem;
   color: var(--color-success);
   font-weight: 600;
+  text-align: center;
+  flex-shrink: 0;
 }
 
 .consent-error {

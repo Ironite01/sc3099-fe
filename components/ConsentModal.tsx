@@ -1,10 +1,12 @@
 'use client';
 
 import { Camera, MapPin, Shield, Check } from 'lucide-react';
+import Modal from './Modal';
 
 type ConsentStep = 'intro' | 'location' | 'camera' | 'ready';
 
 interface ConsentModalProps {
+    isOpen: boolean;
     step: ConsentStep;
     onRequestLocation: () => void;
     onRequestCamera: () => void;
@@ -17,6 +19,7 @@ interface ConsentModalProps {
 }
 
 export default function ConsentModal({
+    isOpen,
     step,
     onRequestLocation,
     onRequestCamera,
@@ -28,92 +31,94 @@ export default function ConsentModal({
     error,
 }: ConsentModalProps) {
     return (
-        <div className="consent-modal">
-            <div className="consent-icon-wrapper">
-                <Shield size={48} className="consent-shield-icon" />
-            </div>
+        <Modal isOpen={isOpen}>
+            <div className="consent-modal">
+                <div className="consent-icon-wrapper">
+                    <Shield size={48} className="consent-shield-icon" />
+                </div>
 
-            <h2>Permission Required</h2>
+                <h2>Permission Required</h2>
 
-            <p className="consent-description">
-                To verify your attendance, we need access to the following:
-            </p>
+                <p className="consent-description">
+                    To verify your attendance, we need access to the following:
+                </p>
 
-            <div className="consent-steps">
-                <div className={`consent-step ${locationGranted ? 'step-complete' : step === 'location' ? 'step-active' : ''}`}>
-                    <div className="step-icon">
-                        {locationGranted ? <Check size={20} /> : <MapPin size={20} />}
+                <div className="consent-steps">
+                    <div className={`consent-step ${locationGranted ? 'step-complete' : step === 'location' ? 'step-active' : ''}`}>
+                        <div className="step-icon">
+                            {locationGranted ? <Check size={20} /> : <MapPin size={20} />}
+                        </div>
+                        <div className="step-content">
+                            <strong>Step 1: Location Access</strong>
+                            <span>Confirm you are on campus</span>
+                        </div>
+                        {!locationGranted && step === 'location' && (
+                            <button
+                                className="step-action-button"
+                                onClick={onRequestLocation}
+                                disabled={isLoading}
+                            >
+                                {isLoading ? '•••' : 'Allow'}
+                            </button>
+                        )}
+                        {locationGranted && (
+                            <span className="step-granted">Granted ✓</span>
+                        )}
                     </div>
-                    <div className="step-content">
-                        <strong>Step 1: Location Access</strong>
-                        <span>Confirm you are on campus</span>
+
+                    <div className={`consent-step ${cameraGranted ? 'step-complete' : step === 'camera' ? 'step-active' : ''}`}>
+                        <div className="step-icon">
+                            {cameraGranted ? <Check size={20} /> : <Camera size={20} />}
+                        </div>
+                        <div className="step-content">
+                            <strong>Step 2: Camera Access</strong>
+                            <span>Verify your identity</span>
+                        </div>
+                        {!cameraGranted && step === 'camera' && (
+                            <button
+                                className="step-action-button"
+                                onClick={onRequestCamera}
+                                disabled={isLoading}
+                            >
+                                {isLoading ? '•••' : 'Allow'}
+                            </button>
+                        )}
+                        {cameraGranted && (
+                            <span className="step-granted">Granted ✓</span>
+                        )}
                     </div>
-                    {!locationGranted && step === 'location' && (
+                </div>
+
+                {error && (
+                    <div className="consent-error">
+                        {error}
+                    </div>
+                )}
+
+                <div className="consent-privacy-note">
+                    <p>Your data is encrypted and only used for attendance verification.</p>
+                </div>
+
+                <div className="consent-actions">
+                    {onDecline && (
                         <button
-                            className="step-action-button"
-                            onClick={onRequestLocation}
+                            className="secondary-button"
+                            onClick={onDecline}
                             disabled={isLoading}
                         >
-                            {isLoading ? 'Requesting...' : 'Allow'}
+                            Cancel
                         </button>
                     )}
-                    {locationGranted && (
-                        <span className="step-granted">Granted ✓</span>
-                    )}
-                </div>
-
-                <div className={`consent-step ${cameraGranted ? 'step-complete' : step === 'camera' ? 'step-active' : ''}`}>
-                    <div className="step-icon">
-                        {cameraGranted ? <Check size={20} /> : <Camera size={20} />}
-                    </div>
-                    <div className="step-content">
-                        <strong>Step 2: Camera Access</strong>
-                        <span>Verify your identity</span>
-                    </div>
-                    {!cameraGranted && step === 'camera' && (
+                    {step === 'ready' && locationGranted && cameraGranted && (
                         <button
-                            className="step-action-button"
-                            onClick={onRequestCamera}
-                            disabled={isLoading}
+                            className="primary-button"
+                            onClick={onComplete}
                         >
-                            {isLoading ? 'Requesting...' : 'Allow'}
+                            Continue
                         </button>
                     )}
-                    {cameraGranted && (
-                        <span className="step-granted">Granted ✓</span>
-                    )}
                 </div>
             </div>
-
-            {error && (
-                <div className="consent-error">
-                    {error}
-                </div>
-            )}
-
-            <div className="consent-privacy-note">
-                <p>Your data is encrypted and only used for attendance verification.</p>
-            </div>
-
-            <div className="consent-actions">
-                {onDecline && (
-                    <button
-                        className="secondary-button"
-                        onClick={onDecline}
-                        disabled={isLoading}
-                    >
-                        Cancel
-                    </button>
-                )}
-                {step === 'ready' && locationGranted && cameraGranted && (
-                    <button
-                        className="primary-button"
-                        onClick={onComplete}
-                    >
-                        Continue
-                    </button>
-                )}
-            </div>
-        </div>
+        </Modal>
     );
 }

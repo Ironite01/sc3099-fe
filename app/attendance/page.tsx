@@ -217,19 +217,7 @@ function AttendanceContent() {
                     </div>
                 )}
 
-                {step === 'consent' && (
-                    <ConsentModal
-                        step={consentStep}
-                        onRequestLocation={handleRequestLocation}
-                        onRequestCamera={handleRequestCamera}
-                        onComplete={handleConsentComplete}
-                        onDecline={() => window.history.back()}
-                        locationGranted={locationGranted}
-                        cameraGranted={cameraGranted}
-                        isLoading={geo.isLoading}
-                        error={error}
-                    />
-                )}
+                {/* ConsentModal moved outside page-content, rendered below as a floating modal */}
 
                 {step === 'liveness' && liveness.currentChallenge && (
                     <div className="liveness-container">
@@ -308,6 +296,19 @@ function AttendanceContent() {
                     />
                 )}
             </div>
+
+            <ConsentModal
+                isOpen={step === 'consent'}
+                step={consentStep}
+                onRequestLocation={handleRequestLocation}
+                onRequestCamera={handleRequestCamera}
+                onComplete={handleConsentComplete}
+                onDecline={() => window.history.back()}
+                locationGranted={locationGranted}
+                cameraGranted={cameraGranted}
+                isLoading={geo.isLoading}
+                error={error}
+            />
 
             <canvas ref={camera.canvasRef} style={{ display: 'none' }} />
         </main>

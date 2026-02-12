@@ -7,7 +7,7 @@
  * - Sets JSON headers by default
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
     body?: object | string;
@@ -63,9 +63,12 @@ export async function login(email: string, password: string): Promise<{
     status?: number;
 }> {
     try {
-        const response = await apiFetch('/api/v1/auth/login', {
+        // Use same-origin request through Next.js rewrite proxy
+        const response = await fetch('/user/login', {
             method: 'POST',
-            body: { email, password },
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ email, password }),
         });
 
         if (response.ok) {
