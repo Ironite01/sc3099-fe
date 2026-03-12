@@ -53,7 +53,7 @@ export default function StatusResult({
                         onClick={() => router.push(homeHref)}
                     >
                         <Home size={18} />
-                        Return Home
+                        Return to Dashboard
                     </button>
                 )}
             </div>

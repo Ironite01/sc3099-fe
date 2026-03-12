@@ -6,8 +6,9 @@ import { FlipHorizontal, X, QrCode } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import jsQR from 'jsqr';
 import { USE_MOCK_DATA, MOCK_ACTIVE_SESSIONS } from '@/lib/mockData';
+import { getActiveSessions } from '@/lib/api';
 
-type ScanStatus = 'scanning' | 'found' | 'error';
+type ScanStatus = 'scanning' | 'found' | 'error' | 'invalid';
 type FacingMode = 'environment' | 'user';
 
 export default function ScanPage() {
@@ -22,6 +23,21 @@ export default function ScanPage() {
     const [cameraError, setCameraError] = useState<string | null>(null);
     const [facingMode, setFacingMode] = useState<FacingMode>('environment');
     const [canFlip, setCanFlip] = useState(false);
+
+    /** Set of valid session IDs loaded from the server on mount */
+    const validSessionIdsRef = useRef<Set<string>>(new Set());
+    const sessionsLoadedRef = useRef(false);
+
+    useEffect(() => {
+        getActiveSessions()
+            .then(res => {
+                if (res.success && res.data) {
+                    validSessionIdsRef.current = new Set(res.data.map(s => s.id));
+                }
+            })
+            .catch(() => { /* graceful degradation — all QRs allowed through */ })
+            .finally(() => { sessionsLoadedRef.current = true; });
+    }, []);
 
     /** Extract session ID from whatever format the QR contains */
     const parseQRContent = (content: string): string | null => {
@@ -68,6 +84,18 @@ export default function ScanPage() {
         if (code) {
             const sessionId = parseQRContent(code.data);
             if (sessionId) {
+                // If sessions have loaded and this ID isn't in the list → invalid
+                if (sessionsLoadedRef.current && !validSessionIdsRef.current.has(sessionId)) {
+                    setStatus('invalid');
+                    setStatusText('Invalid QR code — not a valid session');
+                    // Resume scanning after 2.5 s
+                    setTimeout(() => {
+                        setStatus('scanning');
+                        setStatusText('Point camera at QR code');
+                        rafRef.current = requestAnimationFrame(scanFrame);
+                    }, 2500);
+                    return; // stop RAF loop; setTimeout will restart it
+                }
                 setStatus('found');
                 setStatusText('QR code detected!');
                 stopCamera();
@@ -190,7 +218,7 @@ export default function ScanPage() {
                             </button>
                         )}
 
-                        <div className={`qr-status-pill ${status === 'found' ? 'qr-status-found' : ''}`}>
+                        <div className={`qr-status-pill ${status === 'found' ? 'qr-status-found' : ''} ${status === 'invalid' ? 'qr-status-invalid' : ''}`}>
                             {statusText}
                         </div>
                     </>

@@ -2197,6 +2197,11 @@ body {
   color: white;
 }
 
+.qr-status-invalid {
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+}
+
 .qr-error-state {
   display: flex;
   flex-direction: column;

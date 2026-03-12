@@ -221,7 +221,7 @@ function AttendanceContent() {
 
             <PageHeader
                 title={getPageTitle()}
-                backHref="/courses"
+                backHref="/dashboard"
             />
 
             <div className="page-content">
@@ -337,7 +337,7 @@ function AttendanceContent() {
                                 ? `${selectedSession?.course_code} · ${Math.round(checkinResult.distance_from_venue_meters)}m from venue`
                                 : `${selectedSession?.course_code} - ${selectedSession?.name}`
                         }
-                        homeHref="/courses"
+                        homeHref="/dashboard"
                     />
                 )}
 
@@ -347,7 +347,7 @@ function AttendanceContent() {
                         title="Verification Failed"
                         message={error || 'Something went wrong'}
                         onRetry={handleRetry}
-                        homeHref="/courses"
+                        homeHref="/dashboard"
                     />
                 )}
             </div>
