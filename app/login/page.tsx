@@ -57,6 +57,10 @@ export default function LoginPage() {
             const result = await login(email, password);
 
             if (result.success) {
+                // Cache user info so dashboard can read the real name even in mock mode
+                if (result.data?.user) {
+                    sessionStorage.setItem('saiv_user', JSON.stringify(result.data.user));
+                }
                 // Redirect to dashboard on successful login
                 router.push('/dashboard');
             } else {

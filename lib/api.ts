@@ -231,6 +231,14 @@ export async function updateConsent(
 export async function getMe(): Promise<ApiResponse<User>> {
     if (USE_MOCK_DATA) {
         await new Promise(resolve => setTimeout(resolve, 300));
+        // Use real login data if available (stored during login)
+        try {
+            const cached = sessionStorage.getItem('saiv_user');
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                return { success: true, data: { ...MOCK_USER, ...parsed } };
+            }
+        } catch { /* ignore */ }
         return { success: true, data: MOCK_USER };
     }
     try {
@@ -251,6 +259,8 @@ export async function logout(): Promise<void> {
         await apiFetch('/api/v1/auth/logout', { method: 'POST' });
     } catch {
         // Ignore errors — redirect to login regardless
+    } finally {
+        sessionStorage.removeItem('saiv_user');
     }
 }
 
