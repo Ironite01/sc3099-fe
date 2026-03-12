@@ -1,5 +1,0 @@
-﻿  origin/HEAD -> origin/main
-  origin/main
-  origin/feature/attendance-ui-polish
-  origin/8-create-consent-ui-for-camera-and-location-permissions
-  origin/11-create-components-for-the-login-and-registration-form

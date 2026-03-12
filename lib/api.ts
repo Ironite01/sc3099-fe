@@ -7,8 +7,8 @@
  * - Sets JSON headers by default
  */
 
-import type { Session, Course, AttendancePayload, AttendanceResult, ApiResponse, RegisterPayload } from './types';
-import { MOCK_ENROLLED_COURSES, MOCK_AVAILABLE_COURSES, MOCK_ACTIVE_SESSIONS, USE_MOCK_DATA } from './mockData';
+import type { Session, Course, AttendancePayload, AttendanceResult, ApiResponse, RegisterPayload, User } from './types';
+import { MOCK_ENROLLED_COURSES, MOCK_AVAILABLE_COURSES, MOCK_ACTIVE_SESSIONS, MOCK_USER, USE_MOCK_DATA } from './mockData';
 
 // Use ?? so an intentionally empty NEXT_PUBLIC_BACKEND_URL stays '' (relative path → Next.js proxy).
 // Only falls back to localhost:8000 when the variable is completely absent (undefined).
@@ -225,6 +225,32 @@ export async function updateConsent(
     } catch (error) {
         console.error('Update consent error:', error);
         return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+
+export async function getMe(): Promise<ApiResponse<User>> {
+    if (USE_MOCK_DATA) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        return { success: true, data: MOCK_USER };
+    }
+    try {
+        const response = await apiFetch('/api/v1/users/me');
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, data };
+        }
+        if (response.status === 401) return { success: false, error: 'Not authenticated', status: 401 };
+        return { success: false, error: 'Failed to fetch user', status: response.status };
+    } catch {
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+
+export async function logout(): Promise<void> {
+    try {
+        await apiFetch('/api/v1/auth/logout', { method: 'POST' });
+    } catch {
+        // Ignore errors — redirect to login regardless
     }
 }
 

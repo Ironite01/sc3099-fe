@@ -1,4 +1,12 @@
-import type { Course, Session } from './types';
+import type { Course, Session, User } from './types';
+
+export const MOCK_USER: User = {
+    id: 'mock-student-1',
+    email: 'student@example.com',
+    full_name: 'Alex Student',
+    role: 'student',
+    face_enrolled: true,
+};
 
 export const MOCK_ENROLLED_COURSES: Course[] = [
     {
