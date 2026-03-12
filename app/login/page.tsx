@@ -2,12 +2,14 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { Eye, EyeOff } from 'lucide-react';
 import { login } from '@/lib/api';
 
 export default function LoginPage() {
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [emailError, setEmailError] = useState('');
@@ -135,7 +137,7 @@ export default function LoginPage() {
                                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                             </svg>
                             <input
-                                type="password"
+                                type={showPassword ? 'text' : 'password'}
                                 id="password"
                                 value={password}
                                 onChange={(e) => {
@@ -147,6 +149,15 @@ export default function LoginPage() {
                                 disabled={isLoading}
                                 autoComplete="current-password"
                             />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="toggle-password-btn"
+                                tabIndex={-1}
+                                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                            >
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
                         </div>
                         {passwordError && <span className="field-error">{passwordError}</span>}
                     </div>

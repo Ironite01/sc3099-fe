@@ -7,7 +7,12 @@
  * - Sets JSON headers by default
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+import type { Session, Course, AttendancePayload, AttendanceResult, ApiResponse, RegisterPayload } from './types';
+import { MOCK_ENROLLED_COURSES, MOCK_AVAILABLE_COURSES, MOCK_ACTIVE_SESSIONS, USE_MOCK_DATA } from './mockData';
+
+// Use ?? so an intentionally empty NEXT_PUBLIC_BACKEND_URL stays '' (relative path → Next.js proxy).
+// Only falls back to localhost:8000 when the variable is completely absent (undefined).
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? '';
 
 interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
     body?: object | string;
@@ -63,8 +68,8 @@ export async function login(email: string, password: string): Promise<{
     status?: number;
 }> {
     try {
-        // Use same-origin request through Next.js rewrite proxy
-        const response = await fetch('/user/login', {
+        // Use same-origin request through Next.js rewrite proxy (/api/* → backend)
+        const response = await fetch('/api/v1/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -92,6 +97,50 @@ export async function login(email: string, password: string): Promise<{
     } catch (error) {
         // Network error
         console.error('Login error:', error);
+        return { success: false, error: 'Unable to connect to server. Please check your connection.' };
+    }
+}
+
+/**
+ * Register API call
+ * @param payload - User registration details
+ * @returns Promise with response data or error
+ */
+export async function register(payload: RegisterPayload): Promise<{
+    success: boolean;
+    data?: any;
+    error?: string;
+    status?: number;
+}> {
+    try {
+        const response = await apiFetch('/api/v1/auth/register', {
+            method: 'POST',
+            body: payload,
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, data };
+        }
+
+        if (response.status === 409) {
+            return { success: false, error: 'An account with this email already exists', status: 409 };
+        }
+
+        if (response.status === 400) {
+            const errorData = await response.json().catch(() => ({}));
+            // Map raw Fastify/AJV schema errors to clean user-facing messages
+            const raw: string = errorData.message || '';
+            let clean = 'Please check your details and try again.';
+            if (/full_name/.test(raw)) clean = 'Please enter your full name (at least 4 characters).';
+            else if (/email/.test(raw)) clean = 'Please enter a valid email address.';
+            else if (/password/.test(raw)) clean = 'Password does not meet the requirements.';
+            return { success: false, error: clean, status: 400 };
+        }
+
+        return { success: false, error: 'Registration failed. Please try again.', status: response.status };
+    } catch (error) {
+        console.error('Registration error:', error);
         return { success: false, error: 'Unable to connect to server. Please check your connection.' };
     }
 }
@@ -179,9 +228,6 @@ export async function updateConsent(
     }
 }
 
-import type { Course, AttendancePayload, AttendanceResult, ApiResponse } from './types';
-import { MOCK_ENROLLED_COURSES, MOCK_AVAILABLE_COURSES, USE_MOCK_DATA } from './mockData';
-
 export async function getMyCourses(): Promise<ApiResponse<Course[]>> {
     if (USE_MOCK_DATA) {
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -228,6 +274,31 @@ export async function getAvailableCourses(): Promise<ApiResponse<Course[]>> {
     }
 }
 
+export async function getActiveSessions(): Promise<ApiResponse<Session[]>> {
+    if (USE_MOCK_DATA) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return { success: true, data: MOCK_ACTIVE_SESSIONS };
+    }
+
+    try {
+        const response = await apiFetch('/api/v1/sessions/active');
+
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, data };
+        }
+
+        if (response.status === 401) {
+            return { success: false, error: 'Please log in first', status: 401 };
+        }
+
+        return { success: false, error: 'Failed to fetch active sessions', status: response.status };
+    } catch (error) {
+        console.error('Get sessions error:', error);
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+
 export async function registerForCourse(courseId: string): Promise<ApiResponse<{ message: string }>> {
     if (USE_MOCK_DATA) {
         await new Promise(resolve => setTimeout(resolve, 800));
@@ -256,25 +327,82 @@ export async function registerForCourse(courseId: string): Promise<ApiResponse<{
     }
 }
 
+/** Haversine distance in metres between two lat/lng points */
+function haversineMetres(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6_371_000;
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export async function submitAttendance(payload: AttendancePayload): Promise<ApiResponse<AttendanceResult>> {
     if (USE_MOCK_DATA) {
         await new Promise(resolve => setTimeout(resolve, 1500));
-        const course = MOCK_ENROLLED_COURSES.find(c => c.id === payload.course_id);
+
+        // Look up the session so we can simulate real geofencing
+        const session = MOCK_ACTIVE_SESSIONS.find(s => s.id === payload.session_id);
+
+        // Geofencing check (mirrors backend Haversine logic)
+        if (
+            session?.venue_latitude != null &&
+            session?.venue_longitude != null &&
+            session?.geofence_radius_meters != null
+        ) {
+            const distance = haversineMetres(
+                payload.location.latitude,
+                payload.location.longitude,
+                session.venue_latitude,
+                session.venue_longitude,
+            );
+            if (distance > session.geofence_radius_meters) {
+                return {
+                    success: false,
+                    error: 'You are outside the permitted location for this session.',
+                    status: 400,
+                };
+            }
+        }
+
         return {
             success: true,
             data: {
-                success: true,
-                message: 'Attendance recorded successfully',
-                timestamp: new Date().toISOString(),
-                course_name: course?.name || 'Unknown Course',
+                id: 'mock-checkin-' + Date.now(),
+                session_id: payload.session_id,
+                student_id: 'mock-student',
+                status: 'approved' as const,
+                checked_in_at: new Date().toISOString(),
+                latitude: payload.location.latitude,
+                longitude: payload.location.longitude,
+                distance_from_venue_meters: session?.venue_latitude != null
+                    ? Math.round(haversineMetres(
+                        payload.location.latitude, payload.location.longitude,
+                        session.venue_latitude!, session.venue_longitude!,
+                    ))
+                    : 0,
+                liveness_passed: true,
+                liveness_score: 0.95,
+                risk_score: 0.05,
+                risk_factors: [],
             }
         };
     }
 
     try {
-        const response = await apiFetch('/api/v1/attendance/submit', {
+        const response = await apiFetch('/api/v1/checkins', {
             method: 'POST',
-            body: payload,
+            body: {
+                session_id: payload.session_id,
+                latitude: payload.location.latitude,
+                longitude: payload.location.longitude,
+                location_accuracy_meters: payload.location.accuracy || 10,
+                device_fingerprint: payload.device_fingerprint,
+                liveness_challenge_response: payload.liveness_token,
+                qr_code: '', // Not implemented yet
+            },
         });
 
         if (response.ok) {
@@ -284,11 +412,14 @@ export async function submitAttendance(payload: AttendancePayload): Promise<ApiR
 
         if (response.status === 400) {
             const errorData = await response.json().catch(() => ({}));
-            return {
-                success: false,
-                error: errorData.detail || 'Invalid attendance submission',
-                status: 400
-            };
+            const raw: string = errorData.message || '';
+            let msg = 'Invalid attendance submission.';
+            if (/already checked in/i.test(raw)) msg = 'You have already checked into this session.';
+            else if (/window closed/i.test(raw)) msg = 'The check-in window for this session has closed.';
+            else if (/not active/i.test(raw)) msg = 'This session is not currently active.';
+            else if (/geofence/i.test(raw)) msg = 'You are outside the permitted location for this session.';
+            else if (/venue location/i.test(raw)) msg = 'This session has no venue configured.';
+            return { success: false, error: msg, status: 400 };
         }
 
         if (response.status === 401) {

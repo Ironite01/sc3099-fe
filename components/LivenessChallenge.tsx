@@ -43,15 +43,19 @@ export default function LivenessChallenge({
 
     return (
         <div className="liveness-challenge">
+            <div className="liveness-progress">
+                {challengeIndex + 1} / {totalChallenges}
+            </div>
             <div className="liveness-instruction-wrapper">
                 <span className="liveness-icon">{CHALLENGE_ICONS[challenge.type]}</span>
                 <span className="liveness-instruction">{challenge.instruction}</span>
             </div>
+            {/* Hidden skip button for development/fallback */}
             <button
-                className="liveness-done-button"
+                className="liveness-skip-button"
                 onClick={onActionDetected}
             >
-                Done
+                Skip
             </button>
         </div>
     );

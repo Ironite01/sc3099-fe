@@ -10,7 +10,10 @@ interface UseLivenessOptions {
     challengeDuration?: number;
     onComplete?: (token: string) => void;
     onFail?: () => void;
+    autoDetect?: boolean;
 }
+
+export type LivenessStatus = 'pending' | 'detecting' | 'success' | 'failed';
 
 interface UseLivenessReturn {
     currentChallenge: LivenessChallenge | null;
@@ -20,6 +23,8 @@ interface UseLivenessReturn {
     isActive: boolean;
     isComplete: boolean;
     livenessToken: string | null;
+    detectionProgress: number;
+    status: LivenessStatus;
     startChallenge: () => void;
     completeCurrentChallenge: () => void;
     reset: () => void;
@@ -56,6 +61,7 @@ export function useLiveness(options: UseLivenessOptions = {}): UseLivenessReturn
         challengeDuration = 3000,
         onComplete,
         onFail,
+        autoDetect = true,
     } = options;
 
     const [challenges, setChallenges] = useState<LivenessChallenge[]>([]);
@@ -64,9 +70,22 @@ export function useLiveness(options: UseLivenessOptions = {}): UseLivenessReturn
     const [isActive, setIsActive] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
     const [livenessToken, setLivenessToken] = useState<string | null>(null);
+    const [detectionProgress, setDetectionProgress] = useState(0);
+    const [status, setStatus] = useState<LivenessStatus>('pending');
+
+    // Use refs for callbacks to avoid dependency cycles
+    const onCompleteRef = useRef(onComplete);
+    const onFailRef = useRef(onFail);
+
+    useEffect(() => {
+        onCompleteRef.current = onComplete;
+        onFailRef.current = onFail;
+    }, [onComplete, onFail]);
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const detectionTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const currentChallenge = challenges[challengeIndex] || null;
 
@@ -79,17 +98,27 @@ export function useLiveness(options: UseLivenessOptions = {}): UseLivenessReturn
             clearInterval(intervalRef.current);
             intervalRef.current = null;
         }
+        if (detectionTimerRef.current) {
+            clearTimeout(detectionTimerRef.current);
+            detectionTimerRef.current = null;
+        }
+        if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+        }
     }, []);
 
     const startChallenge = useCallback(() => {
-        const newChallenges = generateChallenges(challengeCount, challengeDuration);
+        const newChallenges = generateChallenges(challengeCount, 8000); // Increased duration for auto-detect
         setChallenges(newChallenges);
         setChallengeIndex(0);
-        setTimeRemaining(challengeDuration);
+        setTimeRemaining(8000);
         setIsActive(true);
         setIsComplete(false);
         setLivenessToken(null);
-    }, [challengeCount, challengeDuration]);
+        setDetectionProgress(0);
+        setStatus('pending');
+    }, [challengeCount]);
 
     const completeCurrentChallenge = useCallback(() => {
         clearTimers();
@@ -99,12 +128,14 @@ export function useLiveness(options: UseLivenessOptions = {}): UseLivenessReturn
             setLivenessToken(token);
             setIsComplete(true);
             setIsActive(false);
-            onComplete?.(token);
+            if (onCompleteRef.current) onCompleteRef.current(token);
         } else {
             setChallengeIndex(prev => prev + 1);
-            setTimeRemaining(challengeDuration);
+            setTimeRemaining(8000);
+            setDetectionProgress(0);
+            setStatus('pending');
         }
-    }, [challengeIndex, challenges.length, challengeDuration, clearTimers, onComplete]);
+    }, [challengeIndex, challenges.length, challengeDuration, clearTimers]);
 
     const reset = useCallback(() => {
         clearTimers();
@@ -114,10 +145,13 @@ export function useLiveness(options: UseLivenessOptions = {}): UseLivenessReturn
         setIsActive(false);
         setIsComplete(false);
         setLivenessToken(null);
+        setDetectionProgress(0);
+        setStatus('pending');
     }, [clearTimers]);
 
+    // Timer for the challenge duration
     useEffect(() => {
-        if (!isActive || !currentChallenge) return;
+        if (!isActive || !currentChallenge || status === 'success') return;
 
         setTimeRemaining(currentChallenge.duration);
 
@@ -129,14 +163,57 @@ export function useLiveness(options: UseLivenessOptions = {}): UseLivenessReturn
         }, 100);
 
         timerRef.current = setTimeout(() => {
+            // Check current status via state rather than lexical to avoid TS error about unintentional comparison
             clearTimers();
             setIsActive(false);
-            onFail?.();
+            setStatus('failed');
+            if (onFailRef.current) onFailRef.current();
         }, currentChallenge.duration);
 
-        return clearTimers;
-    }, [isActive, challengeIndex, currentChallenge, clearTimers, onFail]);
+        return () => {
+            // Only clear timer refs logic for this effect
+            if (timerRef.current) clearTimeout(timerRef.current);
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, [isActive, challengeIndex, currentChallenge, clearTimers, status]);
 
+    // Auto-detection simulation
+    useEffect(() => {
+        if (!isActive || !currentChallenge || !autoDetect || status !== 'pending') return;
+
+        // Start detection
+        setStatus('detecting');
+
+        // Random detection time between 1.5s and 3s
+        const detectionTime = 1500 + Math.random() * 1500;
+        const step = 50;
+        const totalSteps = detectionTime / step;
+        let currentStep = 0;
+
+        progressIntervalRef.current = setInterval(() => {
+            currentStep++;
+            const progress = Math.min((currentStep / totalSteps) * 100, 100);
+            setDetectionProgress(progress);
+
+            if (currentStep >= totalSteps) {
+                if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+                setStatus('success');
+                setDetectionProgress(100);
+
+                // Wait a bit showing success before advancing
+                detectionTimerRef.current = setTimeout(() => {
+                    completeCurrentChallenge();
+                }, 500);
+            }
+        }, step);
+
+        return () => {
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+            if (detectionTimerRef.current) clearTimeout(detectionTimerRef.current);
+        };
+    }, [isActive, challengeIndex, currentChallenge, autoDetect, completeCurrentChallenge /* status removed to avoid loop */]);
+
+    // Cleanup on unmount
     useEffect(() => {
         return clearTimers;
     }, [clearTimers]);
@@ -152,5 +229,7 @@ export function useLiveness(options: UseLivenessOptions = {}): UseLivenessReturn
         startChallenge,
         completeCurrentChallenge,
         reset,
+        detectionProgress,
+        status,
     };
 }

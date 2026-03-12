@@ -297,8 +297,8 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 12px;
   color: var(--color-text-primary);
-  font-size: 1rem;
-  transition: all 0.2s ease;
+  font-size: 1rem; /* explicit px keeps mobile browsers from auto-zooming */
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
 }
 
 .input-wrapper input::placeholder {
@@ -325,8 +325,30 @@ body {
 }
 
 .input-wrapper input:disabled {
-  opacity: 0.6;
+  opacity: 0.7;
   cursor: not-allowed;
+  font-size: 1rem;
+  padding: 0.875rem 1rem 0.875rem 3rem;
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
+  -webkit-text-fill-color: var(--color-text-primary);
+}
+
+.toggle-password-btn {
+  position: absolute;
+  right: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.toggle-password-btn:hover {
+  color: var(--color-text-primary);
 }
 
 /* Field Error */
@@ -334,6 +356,14 @@ body {
   font-size: 0.75rem;
   color: var(--color-error);
   margin-top: -0.25rem;
+}
+
+/* Password hint (single line, shown while typing before requirements are met) */
+.password-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
 }
 
 /* Login Button */
@@ -540,23 +570,55 @@ body {
   color: var(--color-text-secondary);
 }
 
+/* Step Indicator (used in enrollment as step 2 of registration) */
+.step-indicator {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary-light);
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 20px;
+  padding: 0.3rem 0.9rem;
+  display: inline-block;
+  margin-bottom: 0.75rem;
+}
+
+/* Skip Button */
+.skip-button {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.skip-button:hover {
+  color: var(--color-text-secondary);
+}
+
 .enroll-content {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
+  width: 100%;
 }
 
 /* Consent Step */
 .consent-info {
   text-align: center;
+  width: 100%;
 }
 
 .consent-icon {
   width: 64px;
   height: 64px;
   color: var(--color-primary-light);
-  margin-bottom: 1rem;
+  margin: 0 auto 1rem;
+  display: block;
 }
 
 .consent-info h2 {
@@ -671,7 +733,7 @@ body {
   display: block;
 }
 
-.face-overlay {
+.camera-container .face-overlay {
   position: absolute;
   top: 0;
   left: 0;
@@ -683,7 +745,7 @@ body {
   pointer-events: none;
 }
 
-.face-guide {
+.camera-container .face-guide {
   width: 70%;
   height: 60%;
   border: 3px dashed rgba(255, 255, 255, 0.5);
@@ -1116,6 +1178,66 @@ body {
   text-align: center;
   gap: 0.25rem;
   color: white;
+  transition: all 0.3s ease;
+}
+
+/* ============================================
+   Face Guide & Overlay (Liveness) — scoped to .liveness-container
+   ============================================ */
+
+.liveness-container .face-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.liveness-container .face-guide {
+  position: relative;
+  width: 240px;
+  height: 320px;
+  border: none;
+  border-radius: 50%;
+  animation: none;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.85);
+}
+
+/* Glow during detection */
+.liveness-container .face-guide.detecting {
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.85), 0 0 30px rgba(99, 102, 241, 0.4);
+}
+
+.liveness-container .face-guide.success {
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.85), 0 0 30px rgba(34, 197, 94, 0.4);
+}
+
+
+.liveness-progress {
+  position: absolute;
+  top: -30px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.liveness-skip-button {
+  position: absolute;
+  bottom: -30px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.3);
+  border: none;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.liveness-skip-button:hover {
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .liveness-instruction-wrapper {
@@ -1168,6 +1290,35 @@ body {
 
 .liveness-done-button:active {
   transform: scale(0.95);
+}
+
+.scan-ring-circle {
+  transition: stroke-dashoffset 0.1s linear;
+}
+
+.face-guide.detecting {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7);
+  animation: pulse-guide 1.5s infinite;
+}
+
+.face-guide.success {
+  border-color: var(--color-success);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.8);
+}
+
+@keyframes pulse-guide {
+  0% {
+    border-color: var(--color-primary);
+  }
+
+  50% {
+    border-color: rgba(99, 102, 241, 0.5);
+  }
+
+  100% {
+    border-color: var(--color-primary);
+  }
 }
 
 /* ============================================
@@ -1347,12 +1498,16 @@ body {
   display: flex;
   gap: 0.75rem;
   margin-top: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
-.status-actions .primary-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.status-actions .primary-button,
+.status-actions .secondary-button {
+  width: auto;
+  min-width: 130px;
+  padding: 0.65rem 1.5rem;
+  font-size: 0.925rem;
 }
 
 /* ============================================
@@ -1692,27 +1847,6 @@ body {
 }
 
 /* ============================================
-   Face Guide Overlay
-   ============================================ */
-
-.face-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.face-guide {
-  width: 180px;
-  height: 220px;
-  border: 3px solid var(--color-primary);
-  border-radius: 50%;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
-}
-
-/* ============================================
    Selectable Course Cards for Registration
    ============================================ */
 
@@ -1756,30 +1890,6 @@ body {
 .selectable-course-card .course-schedule {
   font-size: 0.75rem;
   color: var(--color-text-secondary);
-}
-
-/* ============================================
-   Face Guide Overlay
-   ============================================ */
-
-.face-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  padding-bottom: 80px;
-}
-
-.face-guide {
-  width: 240px;
-  height: 300px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
-  position: relative;
-  overflow: hidden;
 }
 
 /* ============================================

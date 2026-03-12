@@ -1,4 +1,4 @@
-import type { Course } from './types';
+import type { Course, Session } from './types';
 
 export const MOCK_ENROLLED_COURSES: Course[] = [
     {
@@ -63,3 +63,42 @@ export const MOCK_AVAILABLE_COURSES: Course[] = [
 ];
 
 export const USE_MOCK_DATA = true;
+
+export const MOCK_ACTIVE_SESSIONS: Session[] = [
+    {
+        id: 'session-1',
+        course_id: '1',
+        course_code: 'CS3099',
+        name: 'Week 10 Lecture',
+        session_type: 'lecture',
+        status: 'active',
+        scheduled_start: new Date().toISOString(),
+        scheduled_end: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+        checkin_opens_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+        checkin_closes_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        venue_name: '108B Canberra Walk',
+        venue_latitude: 1.4484446067128445,
+        venue_longitude: 103.83203408153204,
+        geofence_radius_meters: 100,
+        require_liveness_check: true,
+        require_face_match: true,
+    },
+    {
+        id: 'session-2',
+        course_id: '2',
+        course_code: 'CS2030',
+        name: 'Week 10 Tutorial',
+        session_type: 'tutorial',
+        status: 'active',
+        scheduled_start: new Date().toISOString(),
+        scheduled_end: new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString(),
+        checkin_opens_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+        checkin_closes_at: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
+        venue_name: '108B Canberra Walk',
+        venue_latitude: 1.4484446067128445,
+        venue_longitude: 103.83203408153204,
+        geofence_radius_meters: 100,
+        require_liveness_check: true,
+        require_face_match: false,
+    },
+];

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, Suspense, useCallback } from 'react';
+import { useState, useEffect, Suspense, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { Camera, MapPin, Check } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import ConsentModal from '@/components/ConsentModal';
 import LivenessChallengeComponent from '@/components/LivenessChallenge';
@@ -9,12 +10,13 @@ import StatusResult from '@/components/StatusResult';
 import { useCamera } from '@/hooks/useCamera';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useLiveness } from '@/hooks/useLiveness';
-import { getMyCourses, submitAttendance } from '@/lib/api';
-import type { Course, GeolocationCoords } from '@/lib/types';
+import { getActiveSessions, submitAttendance } from '@/lib/api';
+import type { Session, GeolocationCoords, AttendanceResult } from '@/lib/types';
+import fpPromise from '@fingerprintjs/fingerprintjs';
 
 type AttendanceStep =
     | 'loading'
-    | 'select-course'
+    | 'select-session'
     | 'consent'
     | 'liveness'
     | 'capture'
@@ -26,24 +28,26 @@ type ConsentStep = 'intro' | 'location' | 'camera' | 'ready';
 
 function AttendanceContent() {
     const searchParams = useSearchParams();
-    const preselectedCourseId = searchParams.get('courseId');
+    const preselectedSessionId = searchParams.get('sessionId');
 
     const [step, setStep] = useState<AttendanceStep>('loading');
     const [consentStep, setConsentStep] = useState<ConsentStep>('location');
-    const [courses, setCourses] = useState<Course[]>([]);
-    const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+    const [sessions, setSessions] = useState<Session[]>([]);
+    const [selectedSession, setSelectedSession] = useState<Session | null>(null);
     const [location, setLocation] = useState<GeolocationCoords | null>(null);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [locationGranted, setLocationGranted] = useState(false);
     const [cameraGranted, setCameraGranted] = useState(false);
+    const [deviceFingerprint, setDeviceFingerprint] = useState<string | null>(null);
+    const [checkinResult, setCheckinResult] = useState<AttendanceResult | null>(null);
 
     const camera = useCamera();
     const geo = useGeolocation();
     const liveness = useLiveness({
         challengeCount: 2,
-        challengeDuration: 5000,
-        onComplete: () => setStep('capture'),
+        challengeDuration: 8000,
+        // Auto-capture happens when isComplete becomes true
         onFail: () => {
             setError('Liveness verification timed out. Please try again.');
             setStep('error');
@@ -52,33 +56,43 @@ function AttendanceContent() {
 
     useEffect(() => {
         async function init() {
-            const result = await getMyCourses();
+            try {
+                // Initialize fingerprint handling
+                const fp = await fpPromise.load();
+                const result = await fp.get();
+                setDeviceFingerprint(result.visitorId);
 
-            if (result.success && result.data) {
-                const approved = result.data.filter(c => c.status === 'approved');
-                setCourses(approved);
+                const sessionResult = await getActiveSessions();
 
-                if (preselectedCourseId) {
-                    const course = approved.find(c => c.id === preselectedCourseId);
-                    if (course) {
-                        setSelectedCourse(course);
-                        setStep('consent');
-                        return;
+                if (sessionResult.success && sessionResult.data) {
+                    setSessions(sessionResult.data);
+
+                    if (preselectedSessionId) {
+                        const session = sessionResult.data.find(s => s.id === preselectedSessionId);
+                        if (session) {
+                            setSelectedSession(session);
+                            setStep('consent');
+                            return;
+                        }
                     }
-                }
 
-                setStep('select-course');
-            } else {
-                setError(result.error || 'Failed to load courses');
+                    setStep('select-session');
+                } else {
+                    setError(sessionResult.error || 'Failed to load active sessions');
+                    setStep('error');
+                }
+            } catch (err) {
+                console.error("Initialization error:", err);
+                setError('Failed to initialize connection or load sessions.');
                 setStep('error');
             }
         }
 
         init();
-    }, [preselectedCourseId]);
+    }, [preselectedSessionId]);
 
-    const handleCourseSelect = (course: Course) => {
-        setSelectedCourse(course);
+    const handleSessionSelect = (session: Session) => {
+        setSelectedSession(session);
         setStep('consent');
     };
 
@@ -106,9 +120,25 @@ function AttendanceContent() {
     }, [camera]);
 
     const handleConsentComplete = useCallback(() => {
-        liveness.startChallenge();
-        setStep('liveness');
-    }, [liveness]);
+        if (selectedSession?.require_liveness_check === false) {
+            // Session does not require liveness — skip straight to capture
+            handleCapture();
+        } else {
+            liveness.startChallenge();
+            setStep('liveness');
+        }
+    }, [liveness, selectedSession]);
+
+    // Handle auto-capture when liveness is complete
+    useEffect(() => {
+        if (liveness.isComplete && liveness.livenessToken && step === 'liveness') {
+            // Wait for success animation
+            const timer = setTimeout(() => {
+                handleCapture();
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [liveness.isComplete, liveness.livenessToken, step]);
 
     useEffect(() => {
         if ((step === 'liveness' || step === 'capture') && camera.isActive && camera.videoRef.current) {
@@ -117,6 +147,7 @@ function AttendanceContent() {
     }, [step, camera.isActive, camera.videoRef]);
 
     const handleCapture = () => {
+        // Capture logic
         const image = camera.capturePhoto();
 
         if (!image) {
@@ -131,8 +162,9 @@ function AttendanceContent() {
     };
 
     const handleSubmit = async (image: string) => {
-        if (!selectedCourse || !location || !liveness.livenessToken) {
-            setError('Missing required data');
+        const livenessRequired = selectedSession?.require_liveness_check !== false;
+        if (!selectedSession || !location || (livenessRequired && !liveness.livenessToken) || !deviceFingerprint) {
+            setError('Missing required data for check-in');
             setStep('error');
             return;
         }
@@ -142,13 +174,15 @@ function AttendanceContent() {
         const base64Image = image.replace(/^data:image\/\w+;base64,/, '');
 
         const result = await submitAttendance({
-            course_id: selectedCourse.id,
+            session_id: selectedSession.id,
             face_image: base64Image,
             location,
-            liveness_token: liveness.livenessToken,
+            liveness_token: liveness.livenessToken ?? '',
+            device_fingerprint: deviceFingerprint,
         });
 
-        if (result.success) {
+        if (result.success && result.data) {
+            setCheckinResult(result.data);
             setStep('success');
         } else {
             setError(result.error || 'Attendance submission failed');
@@ -169,14 +203,14 @@ function AttendanceContent() {
 
     const getPageTitle = () => {
         switch (step) {
-            case 'select-course': return 'Select Course';
+            case 'select-session': return 'Select Session';
             case 'consent': return 'Permissions';
             case 'liveness': return 'Liveness Check';
             case 'capture': return 'Face Capture';
             case 'submitting': return 'Verifying';
             case 'success': return 'Success';
             case 'error': return 'Error';
-            default: return selectedCourse?.code || 'Attendance';
+            default: return selectedSession?.course_code || 'Attendance';
         }
     };
 
@@ -198,19 +232,19 @@ function AttendanceContent() {
                     </div>
                 )}
 
-                {step === 'select-course' && (
+                {step === 'select-session' && (
                     <div className="course-select-container">
-                        <h2>Select a Course</h2>
-                        <p className="section-description">Choose the course to take attendance for</p>
+                        <h2>Select a Session</h2>
+                        <p className="section-description">Choose the active session to check into</p>
                         <div className="courses-list">
-                            {courses.map(course => (
+                            {sessions.map(session => (
                                 <button
-                                    key={course.id}
+                                    key={session.id}
                                     className="course-select-item"
-                                    onClick={() => handleCourseSelect(course)}
+                                    onClick={() => handleSessionSelect(session)}
                                 >
-                                    <span className="course-code">{course.code}</span>
-                                    <span className="course-name">{course.name}</span>
+                                    <span className="course-code">{session.course_code}</span>
+                                    <span className="course-name">{session.name}</span>
                                 </button>
                             ))}
                         </div>
@@ -219,7 +253,7 @@ function AttendanceContent() {
 
                 {/* ConsentModal moved outside page-content, rendered below as a floating modal */}
 
-                {step === 'liveness' && liveness.currentChallenge && (
+                {step === 'liveness' && (
                     <div className="liveness-container">
                         <div className="camera-preview">
                             <video
@@ -230,41 +264,45 @@ function AttendanceContent() {
                                 className="camera-video"
                             />
                             <div className="face-overlay">
-                                <div className="face-guide" />
+                                <div className={`face-guide ${liveness.status === 'detecting' ? 'detecting' : ''} ${liveness.isComplete ? 'success' : ''}`}>
+                                    {/* SVG Progress Ring — path starts at top (12 o'clock) going clockwise */}
+                                    <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 240 320">
+                                        <path
+                                            d="M 120 2 A 118 158 0 0 1 120 318 A 118 158 0 0 1 120 2"
+                                            fill="none"
+                                            stroke={liveness.isComplete ? "var(--color-success)" : "var(--color-primary)"}
+                                            strokeWidth="4"
+                                            strokeLinecap="round"
+                                            strokeDasharray="875 9999"
+                                            strokeDashoffset={875 - (875 * liveness.detectionProgress) / 100}
+                                            className="scan-ring-circle"
+                                            style={{ opacity: liveness.detectionProgress > 0 || liveness.isComplete ? 1 : 0 }}
+                                        />
+                                    </svg>
+                                </div>
                             </div>
                         </div>
-                        <LivenessChallengeComponent
-                            challenge={liveness.currentChallenge}
-                            timeRemaining={liveness.timeRemaining}
-                            challengeIndex={liveness.challengeIndex}
-                            totalChallenges={liveness.totalChallenges}
-                            onActionDetected={liveness.completeCurrentChallenge}
-                        />
-                    </div>
-                )}
 
-                {step === 'capture' && (
-                    <div className="liveness-container">
-                        <div className="camera-preview">
-                            <video
-                                ref={camera.videoRef}
-                                autoPlay
-                                playsInline
-                                muted
-                                className="camera-video"
+                        {liveness.isComplete ? (
+                            <div className="liveness-challenge" style={{ borderColor: 'var(--color-success)' }}>
+                                <div className="liveness-instruction-wrapper">
+                                    <span className="liveness-icon">
+                                        <Check size={20} color="var(--color-success)" />
+                                    </span>
+                                    <span className="liveness-instruction" style={{ color: 'var(--color-success)' }}>
+                                        Verified
+                                    </span>
+                                </div>
+                            </div>
+                        ) : liveness.currentChallenge ? (
+                            <LivenessChallengeComponent
+                                challenge={liveness.currentChallenge}
+                                timeRemaining={liveness.timeRemaining}
+                                challengeIndex={liveness.challengeIndex}
+                                totalChallenges={liveness.totalChallenges}
+                                onActionDetected={liveness.completeCurrentChallenge}
                             />
-                            <div className="face-overlay">
-                                <div className="face-guide" />
-                            </div>
-                        </div>
-                        <div className="liveness-challenge capture-step">
-                            <div className="liveness-instruction-wrapper">
-                                <span className="liveness-instruction">Hold still to capture</span>
-                            </div>
-                            <button className="liveness-done-button" onClick={handleCapture}>
-                                Capture
-                            </button>
-                        </div>
+                        ) : null}
                     </div>
                 )}
 
@@ -278,10 +316,27 @@ function AttendanceContent() {
 
                 {step === 'success' && (
                     <StatusResult
-                        success
-                        title="Attendance Recorded!"
-                        message="Your attendance has been successfully verified and recorded."
-                        details={`${selectedCourse?.code} - ${selectedCourse?.name}`}
+                        success={checkinResult?.status !== 'rejected'}
+                        title={
+                            checkinResult?.status === 'flagged' ? 'Attendance Submitted' :
+                            checkinResult?.status === 'rejected' ? 'Check-in Rejected' :
+                            checkinResult?.status === 'pending' ? 'Attendance Pending' :
+                            'Attendance Recorded!'
+                        }
+                        message={
+                            checkinResult?.status === 'flagged'
+                                ? 'Your check-in was recorded but flagged for manual review by your instructor.'
+                                : checkinResult?.status === 'rejected'
+                                ? 'Your check-in was rejected. Please contact your instructor.'
+                                : checkinResult?.status === 'pending'
+                                ? 'Your check-in has been submitted and is pending approval.'
+                                : 'Your attendance has been successfully verified and recorded.'
+                        }
+                        details={
+                            checkinResult?.distance_from_venue_meters != null
+                                ? `${selectedSession?.course_code} · ${Math.round(checkinResult.distance_from_venue_meters)}m from venue`
+                                : `${selectedSession?.course_code} - ${selectedSession?.name}`
+                        }
                         homeHref="/courses"
                     />
                 )}

@@ -1,14 +1,28 @@
-/**
- * SAIV Student Frontend - Module 1
- *
- * This is the skeleton implementation for the Student Frontend PWA.
- * Students must implement the check-in interface with camera access,
- * geolocation, and device binding.
- */
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { LogOut } from 'lucide-react';
+import PageHeader from '@/components/PageHeader';
 
 export default function Home() {
+  const router = useRouter();
+
   return (
     <main className="min-h-screen p-8">
+      <PageHeader
+        title=""
+        showBack={false}
+        rightAction={
+          <button
+            className="icon-button"
+            onClick={() => router.push('/login')}
+            aria-label="Logout"
+          >
+            <LogOut size={20} />
+          </button>
+        }
+      />
+
       <h1 className="text-3xl font-bold mb-4">
         SAIV - Secure Attendance System
       </h1>

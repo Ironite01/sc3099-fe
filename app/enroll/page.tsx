@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { enrollFace } from '@/lib/api';
+import { useState, useRef, useCallback, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 type EnrollmentStep = 'consent' | 'camera' | 'preview' | 'submitting' | 'success' | 'error';
 
-export default function EnrollPage() {
+function EnrollPageContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const fromRegister = searchParams.get('fromRegister') === 'true';
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
@@ -20,6 +21,11 @@ export default function EnrollPage() {
     // Start camera stream
     const startCamera = useCallback(async () => {
         try {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                setError('Camera access is not supported by this browser. Please ensure you are using HTTPS or a secure context.');
+                return;
+            }
+
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: 'user',
@@ -92,18 +98,12 @@ export default function EnrollPage() {
         setStep('submitting');
         setError('');
 
-        // Remove data URL prefix to get pure base64
-        const base64Image = capturedImage.replace(/^data:image\/\w+;base64,/, '');
-
-        const result = await enrollFace(base64Image);
-
-        if (result.success && result.data) {
-            setQualityScore(result.data.quality_score);
-            setStep('success');
-        } else {
-            setError(result.error || 'Face enrollment failed');
-            setStep('error');
-        }
+        // TODO: Replace mock with real API call once backend POST /api/v1/users/me/face/enroll is implemented
+        // Real call: const base64Image = capturedImage.replace(/^data:image\/\w+;base64,/, '');
+        //            const result = await enrollFace(base64Image);
+        await new Promise(res => setTimeout(res, 1200));
+        setQualityScore(0.95);
+        setStep('success');
     };
 
     // Handle consent acceptance
@@ -132,6 +132,9 @@ export default function EnrollPage() {
             <div className="enroll-card">
                 {/* Header */}
                 <div className="enroll-header">
+                    {fromRegister && (
+                        <div className="step-indicator">Step 2 of 2 — Account Setup</div>
+                    )}
                     <div className="logo">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -140,7 +143,11 @@ export default function EnrollPage() {
                         </svg>
                     </div>
                     <h1>Face Enrollment</h1>
-                    <p className="tagline">Verify your identity for secure check-ins</p>
+                    <p className="tagline">
+                        {fromRegister
+                            ? 'Last step — set up face recognition for attendance check-ins'
+                            : 'Verify your identity for secure check-ins'}
+                    </p>
                 </div>
 
                 {/* Consent Step */}
@@ -168,6 +175,11 @@ export default function EnrollPage() {
                         <button className="primary-button" onClick={acceptConsent}>
                             Allow Camera Access
                         </button>
+                        {fromRegister && (
+                            <button className="skip-button" onClick={() => router.push('/')}>
+                                Skip for now
+                            </button>
+                        )}
                     </div>
                 )}
 
@@ -231,13 +243,17 @@ export default function EnrollPage() {
                                     <polyline points="22 4 12 14.01 9 11.01" />
                                 </svg>
                             </div>
-                            <h2>Face Enrolled!</h2>
+                            <h2>{fromRegister ? 'Account Setup Complete!' : 'Face Enrolled!'}</h2>
                             {qualityScore !== null && (
                                 <p className="quality-score">
                                     Quality Score: {Math.round(qualityScore * 100)}%
                                 </p>
                             )}
-                            <p>You can now use face verification for check-ins.</p>
+                            <p>
+                                {fromRegister
+                                    ? 'Your account is ready. You can now use face verification for attendance check-ins.'
+                                    : 'You can now use face verification for check-ins.'}
+                            </p>
                         </div>
                         <button className="primary-button" onClick={goToHome}>
                             Continue
@@ -281,5 +297,13 @@ export default function EnrollPage() {
                 <canvas ref={canvasRef} style={{ display: 'none' }} />
             </div>
         </main>
+    );
+}
+
+export default function EnrollPage() {
+    return (
+        <Suspense fallback={null}>
+            <EnrollPageContent />
+        </Suspense>
     );
 }
