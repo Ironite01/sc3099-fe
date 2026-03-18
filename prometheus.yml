@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # SAIV Backend API metrics
+  - job_name: 'saiv-backend'
+    static_configs:
+      - targets: ['backend:8000']
+    metrics_path: '/metrics'
+
+  # SAIV Streamlit Dashboard operational metrics
+  - job_name: 'saiv-dashboard'
+    static_configs:
+      - targets: ['dashboard:9101']
+    metrics_path: '/metrics'

@@ -70,7 +70,7 @@ export const MOCK_AVAILABLE_COURSES: Course[] = [
     },
 ];
 
-export const USE_MOCK_DATA = true;
+export const USE_MOCK_DATA = false;
 
 export const MOCK_ACTIVE_SESSIONS: Session[] = [
     {

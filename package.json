@@ -4,6 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "stack:up": "docker compose -f docker-compose.fullstack.yml up",
+    "stack:up:build": "docker compose -f docker-compose.fullstack.yml up --build",
+    "stack:down": "docker compose -f docker-compose.fullstack.yml down",
+    "stack:logs": "docker compose -f docker-compose.fullstack.yml logs -f",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

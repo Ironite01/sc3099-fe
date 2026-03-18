@@ -17,9 +17,18 @@ export interface Course {
     id: string;
     code: string;
     name: string;
-    instructor: string;
-    schedule: string;
-    status: 'pending' | 'approved' | 'rejected';
+    // Backend fields
+    semester?: string;
+    is_active?: boolean;
+    venue_name?: string | null;
+    venue_latitude?: number | null;
+    venue_longitude?: number | null;
+    geofence_radius_meters?: number | null;
+    enrolled_at?: string;
+    // Mock / legacy-only fields (not returned by real API)
+    instructor?: string;
+    schedule?: string;
+    status?: 'pending' | 'approved' | 'rejected';
 }
 
 export interface Session {
@@ -47,6 +56,7 @@ export interface AttendancePayload {
     location: GeolocationCoords;
     liveness_token: string;
     device_fingerprint: string;
+    qr_code?: string;
 }
 
 export interface GeolocationCoords {
@@ -72,6 +82,18 @@ export interface AttendanceResult {
     risk_factors: Record<string, any>[];
 }
 
+export interface StudentCheckin {
+    id: string;
+    session_id: string;
+    session_name: string;
+    course_id: string;
+    course_code: string;
+    course_name: string;
+    status: CheckinStatus;
+    checked_in_at: string;
+    risk_score: number | null;
+}
+
 export interface LivenessChallenge {
     type: 'blink' | 'turn_left' | 'turn_right' | 'smile' | 'nod';
     instruction: string;
@@ -83,4 +105,17 @@ export interface ApiResponse<T> {
     data?: T;
     error?: string;
     status?: number;
+}
+
+export interface DeviceRecord {
+    id: string;
+    device_fingerprint?: string;
+    device_name: string | null;
+    platform: string | null;
+    is_trusted: boolean;
+    trust_score: 'low' | 'medium' | 'high';
+    is_active: boolean;
+    first_seen_at: string;
+    last_seen_at: string;
+    total_checkins: number;
 }

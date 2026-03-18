@@ -22,9 +22,9 @@ export default function CourseCard({
     showStatus = false,
     actionLabel = 'Take Attendance',
 }: CourseCardProps) {
-    const statusConfig = STATUS_CONFIG[course.status];
-    const StatusIcon = statusConfig.icon;
-    const isActionable = course.status === 'approved' && onTakeAttendance;
+    const statusConfig = course.status ? STATUS_CONFIG[course.status] : null;
+    const StatusIcon = statusConfig?.icon;
+    const isActionable = (!course.status || course.status === 'approved') && !!onTakeAttendance;
 
     return (
         <div className="course-card">
@@ -32,10 +32,12 @@ export default function CourseCard({
                 <div className="course-card-header">
                     <span className="course-code">{course.code}</span>
                     {showStatus && (
-                        <span className={`course-status ${statusConfig.className}`}>
-                            <StatusIcon size={14} />
-                            {statusConfig.label}
-                        </span>
+                        statusConfig && StatusIcon && (
+                            <span className={`course-status ${statusConfig.className}`}>
+                                <StatusIcon size={14} />
+                                {statusConfig.label}
+                            </span>
+                        )
                     )}
                 </div>
 
@@ -44,11 +46,11 @@ export default function CourseCard({
                 <div className="course-details">
                     <div className="course-detail">
                         <User size={14} />
-                        <span>{course.instructor}</span>
+                        <span>{course.instructor ?? course.semester ?? ''}</span>
                     </div>
                     <div className="course-detail">
                         <Clock size={14} />
-                        <span>{course.schedule}</span>
+                        <span>{course.schedule ?? ''}</span>
                     </div>
                 </div>
             </div>

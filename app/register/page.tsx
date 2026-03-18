@@ -3,7 +3,8 @@
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
-import { register, login } from '@/lib/api';
+import fpPromise from '@fingerprintjs/fingerprintjs';
+import { register, login, registerDevice } from '@/lib/api';
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -26,9 +27,9 @@ export default function RegisterPage() {
         return emailRegex.test(email);
     };
 
-    // Name validation: letters (incl. accented), spaces, hyphens, apostrophes, dots — 2–50 chars
+    // Name validation: letters (ASCII + Latin accents), spaces, hyphens, apostrophes, dots — 2–50 chars
     const isValidFullName = (name: string): boolean => {
-        return /^[\p{L}\s\.\-']+$/u.test(name.trim()) && name.trim().length >= 2 && name.trim().length <= 50;
+        return /^[A-Za-zÀ-ÖØ-öø-ÿ\s\.\-']+$/.test(name.trim()) && name.trim().length >= 2 && name.trim().length <= 50;
     };
 
     // Password strength: 0–4 based on rules met
@@ -122,6 +123,17 @@ export default function RegisterPage() {
                 // Auto-login then redirect to face enrollment (Step 2 of sign up)
                 const loginResult = await login(email, password);
                 if (loginResult.success) {
+                    try {
+                        const fp = await fpPromise.load();
+                        const fpResult = await fp.get();
+                        await registerDevice({
+                            device_fingerprint: fpResult.visitorId,
+                            device_name: navigator?.userAgent?.slice(0, 100) ?? 'Browser',
+                            platform: 'web',
+                        });
+                    } catch {
+                        // Non-fatal: proceed to enrollment even if device registration fails.
+                    }
                     router.push('/enroll?fromRegister=true');
                 } else {
                     // Registration succeeded but auto-login failed – fall back to login page

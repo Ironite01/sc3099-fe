@@ -1,0 +1,105 @@
+name: sc3099-stack
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: saiv
+      POSTGRES_PASSWORD: saiv_password
+      POSTGRES_DB: saiv
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saiv -d saiv"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      PORT: 8000
+      POSTGRES_USERNAME: saiv
+      POSTGRES_PASSWORD: saiv_password
+      POSTGRES_URI: db:5432
+      POSTGRES_DB: saiv
+      JWT_SECRET: super-secret-key-for-local-dev
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../sc3099-be:/app
+      - be_node_modules:/app/node_modules
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      BACKEND_URL: http://backend:8000
+      NEXT_PUBLIC_BACKEND_URL: ""
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./:/app
+      - fe_node_modules:/app/node_modules
+
+  dashboard:
+    build:
+      context: ../sc3099-dashboard
+      dockerfile: Dockerfile
+    environment:
+      API_BASE_URL: http://backend:8000/api/v1
+    depends_on:
+      - backend
+    ports:
+      - "8501:8501"
+      - "9101:9101"
+
+  # ── Observability stack ───────────────────────────────────────────────────
+
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=7d"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - backend
+      - dashboard
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: saiv_grafana
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  db_data:
+    name: sc3099-be_postgres_data
+  be_node_modules:
+  fe_node_modules:
+  prometheus_data:
+  grafana_data:

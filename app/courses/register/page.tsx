@@ -46,7 +46,8 @@ export default function CourseRegisterPage() {
             course =>
                 course.code.toLowerCase().includes(query) ||
                 course.name.toLowerCase().includes(query) ||
-                course.instructor.toLowerCase().includes(query)
+                (course.instructor ?? '').toLowerCase().includes(query) ||
+                (course.semester ?? '').toLowerCase().includes(query)
         );
         setFilteredCourses(filtered);
     }, [searchQuery, courses]);
@@ -150,8 +151,12 @@ export default function CourseRegisterPage() {
                             >
                                 <span className="course-code">{course.code}</span>
                                 <span className="course-name">{course.name}</span>
-                                <span className="course-instructor">{course.instructor}</span>
-                                <span className="course-schedule">{course.schedule}</span>
+                                {course.instructor && (
+                                    <span className="course-instructor">{course.instructor}</span>
+                                )}
+                                <span className="course-schedule">
+                                    {course.schedule ?? course.semester ?? ''}
+                                </span>
                             </button>
                         ))}
                     </div>

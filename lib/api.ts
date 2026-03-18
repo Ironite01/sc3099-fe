@@ -7,7 +7,7 @@
  * - Sets JSON headers by default
  */
 
-import type { Session, Course, AttendancePayload, AttendanceResult, ApiResponse, RegisterPayload, User } from './types';
+import type { Session, Course, AttendancePayload, AttendanceResult, ApiResponse, RegisterPayload, User, StudentCheckin, DeviceRecord } from './types';
 import { MOCK_ENROLLED_COURSES, MOCK_AVAILABLE_COURSES, MOCK_ACTIVE_SESSIONS, MOCK_USER, USE_MOCK_DATA } from './mockData';
 
 // Use ?? so an intentionally empty NEXT_PUBLIC_BACKEND_URL stays '' (relative path → Next.js proxy).
@@ -16,6 +16,12 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? '';
 
 interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
     body?: object | string;
+}
+
+function normalizeCourseList(payload: any): Course[] {
+    if (Array.isArray(payload)) return payload as Course[];
+    if (Array.isArray(payload?.items)) return payload.items as Course[];
+    return [];
 }
 
 /**
@@ -130,9 +136,10 @@ export async function register(payload: RegisterPayload): Promise<{
         if (response.status === 400) {
             const errorData = await response.json().catch(() => ({}));
             // Map raw Fastify/AJV schema errors to clean user-facing messages
-            const raw: string = errorData.message || '';
+            const raw: string = String(errorData.message || '').toLowerCase();
             let clean = 'Please check your details and try again.';
-            if (/full_name/.test(raw)) clean = 'Please enter your full name (at least 4 characters).';
+            if (/already\s*registered|already\s*exists|duplicate/.test(raw)) clean = 'An account with this email already exists';
+            else if (/full_name/.test(raw)) clean = 'Please enter your full name (at least 4 characters).';
             else if (/email/.test(raw)) clean = 'Please enter a valid email address.';
             else if (/password/.test(raw)) clean = 'Password does not meet the requirements.';
             return { success: false, error: clean, status: 400 };
@@ -275,7 +282,7 @@ export async function getMyCourses(): Promise<ApiResponse<Course[]>> {
 
         if (response.ok) {
             const data = await response.json();
-            return { success: true, data };
+            return { success: true, data: normalizeCourseList(data) };
         }
 
         if (response.status === 401) {
@@ -300,7 +307,7 @@ export async function getAvailableCourses(): Promise<ApiResponse<Course[]>> {
 
         if (response.ok) {
             const data = await response.json();
-            return { success: true, data };
+            return { success: true, data: normalizeCourseList(data) };
         }
 
         return { success: false, error: 'Failed to fetch available courses', status: response.status };
@@ -331,6 +338,32 @@ export async function getActiveSessions(): Promise<ApiResponse<Session[]>> {
         return { success: false, error: 'Failed to fetch active sessions', status: response.status };
     } catch (error) {
         console.error('Get sessions error:', error);
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+
+export async function getMyCheckins(limit: number = 10): Promise<ApiResponse<StudentCheckin[]>> {
+    if (USE_MOCK_DATA) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        return { success: true, data: [] };
+    }
+
+    try {
+        const clampedLimit = Math.max(1, Math.min(limit, 200));
+        const response = await apiFetch(`/api/v1/checkins/my-checkins?limit=${clampedLimit}`);
+
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, data: Array.isArray(data) ? data : [] };
+        }
+
+        if (response.status === 401) {
+            return { success: false, error: 'Please log in first', status: 401 };
+        }
+
+        return { success: false, error: 'Failed to fetch your check-ins', status: response.status };
+    } catch (error) {
+        console.error('Get my check-ins error:', error);
         return { success: false, error: 'Unable to connect to server.' };
     }
 }
@@ -437,7 +470,7 @@ export async function submitAttendance(payload: AttendancePayload): Promise<ApiR
                 location_accuracy_meters: payload.location.accuracy || 10,
                 device_fingerprint: payload.device_fingerprint,
                 liveness_challenge_response: payload.liveness_token,
-                qr_code: '', // Not implemented yet
+                qr_code: payload.qr_code || '',
             },
         });
 
@@ -448,13 +481,17 @@ export async function submitAttendance(payload: AttendancePayload): Promise<ApiR
 
         if (response.status === 400) {
             const errorData = await response.json().catch(() => ({}));
-            const raw: string = errorData.message || '';
+            const raw: string = errorData.message || errorData.detail || '';
             let msg = 'Invalid attendance submission.';
             if (/already checked in/i.test(raw)) msg = 'You have already checked into this session.';
+            else if (/not enrolled|not in this course/i.test(raw)) msg = 'You are not enrolled in this course.';
             else if (/window closed/i.test(raw)) msg = 'The check-in window for this session has closed.';
             else if (/not active/i.test(raw)) msg = 'This session is not currently active.';
             else if (/geofence/i.test(raw)) msg = 'You are outside the permitted location for this session.';
             else if (/venue location/i.test(raw)) msg = 'This session has no venue configured.';
+            else if (/device not registered/i.test(raw)) msg = 'Your device is not registered. Please try again — registration is automatic.';
+            else if (/device.*(deactivated|inactive)/i.test(raw)) msg = 'Your device has been deactivated. Please contact your instructor.';
+            else if (/device fingerprint.*required/i.test(raw)) msg = 'Device verification is required for this session.';
             return { success: false, error: msg, status: 400 };
         }
 
@@ -472,3 +509,79 @@ export async function submitAttendance(payload: AttendancePayload): Promise<ApiR
         return { success: false, error: 'Unable to connect to server.' };
     }
 }
+
+// ── Device Management ────────────────────────────────────────────────────────
+
+/**
+ * Register (or refresh) the current device fingerprint in the backend.
+ * Uses upsert semantics — safe to call on every attendance page load.
+ */
+export async function registerDevice(payload: {
+    device_fingerprint: string;
+    device_name?: string;
+    platform?: string;
+}): Promise<ApiResponse<DeviceRecord>> {
+    if (USE_MOCK_DATA) {
+        return {
+            success: true,
+            data: {
+                id: 'mock-device-id',
+                device_name: payload.device_name ?? 'Browser',
+                platform: payload.platform ?? 'web',
+                is_trusted: false,
+                trust_score: 'low',
+                is_active: true,
+                first_seen_at: new Date().toISOString(),
+                last_seen_at: new Date().toISOString(),
+                total_checkins: 0,
+            },
+        };
+    }
+    try {
+        const res = await apiFetch('/api/v1/devices/register', {
+            method: 'POST',
+            body: payload,
+        });
+        if (res.ok) {
+            const data = await res.json();
+            return { success: true, data };
+        }
+        return { success: false, error: 'Failed to register device', status: res.status };
+    } catch {
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+
+/** Fetch the current student's registered devices. */
+export async function getMyDevices(): Promise<ApiResponse<DeviceRecord[]>> {
+    if (USE_MOCK_DATA) {
+        return { success: true, data: [] };
+    }
+    try {
+        const res = await apiFetch('/api/v1/devices/my-devices');
+        if (res.ok) {
+            const data = await res.json();
+            return { success: true, data: Array.isArray(data) ? data : [] };
+        }
+        return { success: false, error: 'Failed to load devices', status: res.status };
+    } catch {
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+
+/** Remove a registered device by ID. */
+export async function deleteDevice(deviceId: string): Promise<ApiResponse<void>> {
+    if (USE_MOCK_DATA) {
+        return { success: true };
+    }
+    try {
+        const res = await apiFetch(`/api/v1/devices/${deviceId}`, { method: 'DELETE' });
+        if (res.status === 204 || res.ok) {
+            return { success: true };
+        }
+        return { success: false, error: 'Failed to remove device', status: res.status };
+    } catch {
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+

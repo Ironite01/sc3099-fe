@@ -3,7 +3,8 @@
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
-import { login } from '@/lib/api';
+import fpPromise from '@fingerprintjs/fingerprintjs';
+import { login, registerDevice } from '@/lib/api';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -57,6 +58,19 @@ export default function LoginPage() {
             const result = await login(email, password);
 
             if (result.success) {
+                // Automatically bind current browser/device after successful login.
+                try {
+                    const fp = await fpPromise.load();
+                    const fpResult = await fp.get();
+                    await registerDevice({
+                        device_fingerprint: fpResult.visitorId,
+                        device_name: navigator?.userAgent?.slice(0, 100) ?? 'Browser',
+                        platform: 'web',
+                    });
+                } catch {
+                    // Non-fatal: user can still continue; device can be registered later.
+                }
+
                 // Cache user info so dashboard can read the real name even in mock mode
                 if (result.data?.user) {
                     sessionStorage.setItem('saiv_user', JSON.stringify(result.data.user));

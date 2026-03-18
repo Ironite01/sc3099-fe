@@ -40,19 +40,19 @@ export default function ScanPage() {
     }, []);
 
     /** Extract session ID from whatever format the QR contains */
-    const parseQRContent = (content: string): string | null => {
+    const parseQRContent = (content: string): { sessionId: string; raw: string } | null => {
         try {
             const url = new URL(content);
             const id = url.searchParams.get('sessionId');
-            if (id) return id;
+            if (id) return { sessionId: id, raw: content };
         } catch {
             try {
                 const obj = JSON.parse(content);
-                if (obj.sessionId) return obj.sessionId;
+                if (obj.sessionId) return { sessionId: String(obj.sessionId), raw: content };
             } catch { /* fall through */ }
         }
         const trimmed = content.trim();
-        return trimmed.length > 0 ? trimmed : null;
+        return trimmed.length > 0 ? { sessionId: trimmed, raw: content } : null;
     };
 
     const stopCamera = useCallback(() => {
@@ -82,10 +82,10 @@ export default function ScanPage() {
         });
 
         if (code) {
-            const sessionId = parseQRContent(code.data);
-            if (sessionId) {
+            const parsed = parseQRContent(code.data);
+            if (parsed) {
                 // If sessions have loaded and this ID isn't in the list → invalid
-                if (sessionsLoadedRef.current && !validSessionIdsRef.current.has(sessionId)) {
+                if (sessionsLoadedRef.current && !validSessionIdsRef.current.has(parsed.sessionId)) {
                     setStatus('invalid');
                     setStatusText('Invalid QR code — not a valid session');
                     // Resume scanning after 2.5 s
@@ -100,7 +100,7 @@ export default function ScanPage() {
                 setStatusText('QR code detected!');
                 stopCamera();
                 setTimeout(() => {
-                    router.push(`/attendance?sessionId=${encodeURIComponent(sessionId)}`);
+                    router.push(`/attendance?sessionId=${encodeURIComponent(parsed.sessionId)}&qr=${encodeURIComponent(parsed.raw)}`);
                 }, 600);
                 return;
             }

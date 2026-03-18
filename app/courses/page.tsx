@@ -30,12 +30,11 @@ export default function CoursesPage() {
         fetchCourses();
     }, []);
 
-    const approvedCourses = courses.filter(c => c.status === 'approved');
+    // Real backend doesn't return a status field on enrolled courses — every
+    // course in the list is already enrolled/active.  Only apply the filter
+    // when mock data is used (status will be set).
+    const approvedCourses = courses.filter(c => !c.status || c.status === 'approved');
     const pendingCourses = courses.filter(c => c.status === 'pending');
-
-    const handleAttendance = (courseId: string) => {
-        router.push(`/attendance?courseId=${courseId}`);
-    };
 
     return (
         <main className="page-container">
@@ -44,7 +43,8 @@ export default function CoursesPage() {
 
             <PageHeader
                 title="My Courses"
-                showBack={false}
+                showBack
+                backHref="/dashboard"
                 rightAction={
                     <button
                         className="icon-button"
@@ -57,6 +57,16 @@ export default function CoursesPage() {
             />
 
             <div className="page-content">
+                <div style={{ marginBottom: '1rem' }}>
+                    <button
+                            className="primary-button"
+                            style={{ width: '100%' }}
+                        onClick={() => router.push('/dashboard')}
+                    >
+                        Back to Dashboard
+                    </button>
+                </div>
+
                 {isLoading ? (
                     <div className="loading-state">
                         <div className="spinner large" />
@@ -82,7 +92,7 @@ export default function CoursesPage() {
                                     onClick={() => router.push('/courses/register')}
                                 >
                                     <Plus size={18} />
-                                    Add Course
+                                    Register Course
                                 </button>
                             </div>
 
@@ -103,7 +113,6 @@ export default function CoursesPage() {
                                         <CourseCard
                                             key={course.id}
                                             course={course}
-                                            onTakeAttendance={() => handleAttendance(course.id)}
                                         />
                                     ))}
                                 </div>

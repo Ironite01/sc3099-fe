@@ -1,0 +1,176 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" }
+  ],
+  "annotations": { "list": [] },
+  "description": "SAIV - Secure Attendance & Identity Verification system overview",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Check-in Overview",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 2,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "title": "Total Check-ins",
+      "type": "stat",
+      "targets": [{ "expr": "sum(saiv_checkin_total)", "legendFormat": "Total", "refId": "A" }]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 5 }, { "color": "red", "value": 20 }] } }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 3,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "title": "Flagged Check-ins",
+      "type": "stat",
+      "targets": [{ "expr": "sum(saiv_checkin_total{status=\"flagged\"})", "legendFormat": "Flagged", "refId": "A" }]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 4,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "title": "Rejected Check-ins",
+      "type": "stat",
+      "targets": [{ "expr": "sum(saiv_checkin_total{status=\"rejected\"})", "legendFormat": "Rejected", "refId": "A" }]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 5,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "title": "Device Registrations",
+      "type": "stat",
+      "targets": [{ "expr": "saiv_device_registration_total", "legendFormat": "Devices", "refId": "A" }]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 0.3 }, { "color": "red", "value": 0.5 }] }, "unit": "percentunit" }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 6,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "title": "Avg Risk Score",
+      "type": "stat",
+      "targets": [{ "expr": "saiv_checkin_risk_score_sum / saiv_checkin_risk_score_count", "legendFormat": "Avg Risk", "refId": "A" }]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "id": 7,
+      "options": { "tooltip": { "mode": "multi" } },
+      "title": "Check-in Rate by Status (per minute)",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "rate(saiv_checkin_total{status=\"approved\"}[5m])", "legendFormat": "Approved", "refId": "A" },
+        { "expr": "rate(saiv_checkin_total{status=\"flagged\"}[5m])", "legendFormat": "Flagged", "refId": "B" },
+        { "expr": "rate(saiv_checkin_total{status=\"rejected\"}[5m])", "legendFormat": "Rejected", "refId": "C" }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "m" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "id": 8,
+      "options": { "fillOpacity": 10 },
+      "title": "Check-in Distance from Venue (percentiles)",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "histogram_quantile(0.50, rate(saiv_checkin_distance_meters_bucket[10m]))", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.90, rate(saiv_checkin_distance_meters_bucket[10m]))", "legendFormat": "p90", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, rate(saiv_checkin_distance_meters_bucket[10m]))", "legendFormat": "p99", "refId": "C" }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 },
+      "id": 9,
+      "title": "Risk Score Distribution",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "id": 10,
+      "options": { "fillOpacity": 20 },
+      "title": "Risk Score Percentiles Over Time",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "histogram_quantile(0.50, rate(saiv_checkin_risk_score_bucket[10m]))", "legendFormat": "p50 risk", "refId": "A" },
+        { "expr": "histogram_quantile(0.90, rate(saiv_checkin_risk_score_bucket[10m]))", "legendFormat": "p90 risk", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, rate(saiv_checkin_risk_score_bucket[10m]))", "legendFormat": "p99 risk", "refId": "C" }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "id": 11,
+      "options": { "tooltip": { "mode": "multi" } },
+      "title": "Login Attempts (success vs failure)",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "rate(saiv_login_total{status=\"success\"}[5m])", "legendFormat": "Success", "refId": "A" },
+        { "expr": "rate(saiv_login_total{status=\"failure\"}[5m])", "legendFormat": "Failure", "refId": "B" }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
+      "id": 12,
+      "title": "API Performance",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "s" } },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 23 },
+      "id": 13,
+      "options": { "fillOpacity": 10 },
+      "title": "HTTP Request Duration Percentiles",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum by (route, le) (rate(saiv_http_request_duration_seconds_bucket[5m])))", "legendFormat": "p50 {{route}}", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum by (route, le) (rate(saiv_http_request_duration_seconds_bucket[5m])))", "legendFormat": "p95 {{route}}", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, sum by (route, le) (rate(saiv_http_request_duration_seconds_bucket[5m])))", "legendFormat": "p99 {{route}}", "refId": "C" }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "tags": ["saiv", "attendance", "security"],
+  "templating": { "list": [] },
+  "time": { "from": "now-3h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "SAIV - System Overview",
+  "uid": "saiv-overview",
+  "version": 1
+}

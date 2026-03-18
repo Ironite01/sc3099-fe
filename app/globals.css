@@ -1,4 +1,4 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -1182,7 +1182,7 @@ body {
 }
 
 /* ============================================
-   Face Guide & Overlay (Liveness) — scoped to .liveness-container
+   Face Guide & Overlay (Liveness) â€” scoped to .liveness-container
    ============================================ */
 
 .liveness-container .face-overlay {
@@ -2095,6 +2095,21 @@ body {
   text-overflow: ellipsis;
 }
 
+.dashboard-checkin-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.dashboard-course-meta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ============================================
    QR Scanner Page
    ============================================ */
@@ -2277,4 +2292,186 @@ body {
 
 .qr-mock-btn:hover {
   background: rgba(99, 102, 241, 0.5);
+}
+
+/* ============================================
+   Dashboard Quick Links
+   ============================================ */
+
+.dashboard-quick-links {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard-quick-link {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.85rem 0.5rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  color: var(--color-text-primary);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.dashboard-quick-link:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--color-primary);
+}
+
+/* ============================================
+   My Devices Page
+   ============================================ */
+
+.devices-intro {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+}
+
+.devices-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.device-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 1rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+}
+
+.device-card-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary-light);
+}
+
+.device-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.device-card-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  margin-bottom: 0.35rem;
+}
+
+.device-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.device-card-dates {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.device-card-dates span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Trust badges */
+.device-trust-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.device-trust-trusted {
+  background: rgba(34, 197, 94, 0.12);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.device-trust-low {
+  background: rgba(234, 179, 8, 0.12);
+  color: #eab308;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.device-trust-inactive {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.device-delete-btn {
+  flex-shrink: 0;
+  padding: 0.5rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+  min-width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.device-delete-btn:hover {
+  color: var(--color-error);
+  background: var(--color-error-bg);
+}
+
+.device-delete-confirm {
+  color: var(--color-error) !important;
+  background: var(--color-error-bg) !important;
+  border-color: var(--color-error) !important;
+  padding: 0.35rem 0.6rem !important;
+  font-size: 0.75rem !important;
+}
+
+.devices-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  padding: 0.75rem 1rem;
+  background: rgba(99, 102, 241, 0.06);
+  border-radius: 10px;
+  border: 1px solid rgba(99, 102, 241, 0.15);
 }

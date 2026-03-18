@@ -10,7 +10,7 @@ import StatusResult from '@/components/StatusResult';
 import { useCamera } from '@/hooks/useCamera';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useLiveness } from '@/hooks/useLiveness';
-import { getActiveSessions, submitAttendance } from '@/lib/api';
+import { getActiveSessions, submitAttendance, registerDevice } from '@/lib/api';
 import type { Session, GeolocationCoords, AttendanceResult } from '@/lib/types';
 import fpPromise from '@fingerprintjs/fingerprintjs';
 
@@ -29,6 +29,7 @@ type ConsentStep = 'intro' | 'location' | 'camera' | 'ready';
 function AttendanceContent() {
     const searchParams = useSearchParams();
     const preselectedSessionId = searchParams.get('sessionId');
+    const scannedQrCode = searchParams.get('qr');
 
     const [step, setStep] = useState<AttendanceStep>('loading');
     const [consentStep, setConsentStep] = useState<ConsentStep>('location');
@@ -60,7 +61,19 @@ function AttendanceContent() {
                 // Initialize fingerprint handling
                 const fp = await fpPromise.load();
                 const result = await fp.get();
-                setDeviceFingerprint(result.visitorId);
+                const visitorId = result.visitorId;
+                setDeviceFingerprint(visitorId);
+
+                // Auto-register (or refresh) this device in the backend so the
+                // check-in handler can enforce device-binding per course settings.
+                registerDevice({
+                    device_fingerprint: visitorId,
+                    device_name: navigator?.userAgent?.slice(0, 100) ?? 'Browser',
+                    platform: 'web',
+                }).catch(() => {
+                    // Non-fatal: the check-in endpoint will reject if binding is
+                    // required and the device is not yet registered.
+                });
 
                 const sessionResult = await getActiveSessions();
 
@@ -179,6 +192,7 @@ function AttendanceContent() {
             location,
             liveness_token: liveness.livenessToken ?? '',
             device_fingerprint: deviceFingerprint,
+            qr_code: scannedQrCode ?? undefined,
         });
 
         if (result.success && result.data) {
