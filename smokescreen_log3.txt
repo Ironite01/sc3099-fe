@@ -1,0 +1,51 @@
+
+STEP 1: Admin login (seeded account)
+  [PASS] Admin login -> 200 => status=200 body={"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MGUzMjRjZC0zNDZlLTRlNWYtYjE2NS02OWVhNmM1ZGI3OTciLCJlbW
+  [PASS] Admin cookies received => access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MGUzMjRjZC0zNDZlLT
+
+STEP 2: Create course
+  [FAIL] Course creation -> 201 => status=404 detail={"message":"Route POST:/api/v1/courses not found","error":"Not Found","statusCode":404}
+  [FAIL] Course ID received
+
+STEP 3: Create session (open for checkin, status=scheduled)
+  [FAIL] Session creation -> 201 => status=404 id=undefined
+  [FAIL] Session ID received
+
+STEP 4: Register student
+  [PASS] Student registration -> 201 => status=201 body={"id":"67dabc32-9f64-4ce3-93a3-78dface255ef","email":"smokestudent1773971873176@example.com","full_n
+  [PASS] Student ID received => 67dabc32-9f64-4ce3-93a3-78dface255ef
+
+STEP 5: Enroll student in course
+  [FAIL] Enrollment -> 201 => status=404
+
+STEP 6: Activate session
+  [FAIL] Session activated -> 200 => status=404 sessionStatus=undefined
+
+STEP 7: Student login
+  [PASS] Student login -> 200 => status=200
+  [PASS] Student cookies received => access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2N2RhYmMzMi05ZjY0LT
+
+STEP 8: Register device
+  [PASS] Device register -> 201 => status=201 body={"id":"e0a3f34d-4aac-43dd-be5f-d283a109666c","device_fingerprint":"smoke-device-fp-1773971873176","d
+  [PASS] Device is active => is_active=true
+
+STEP 9: Verify device in /devices/my-devices
+  [PASS] My devices list -> 200 => status=200
+  [PASS] At least 1 device found => count=1
+
+STEP 10: Submit check-in at same lat/lng as venue
+  Venue location:   lat=1.3468380321270712, lng=103.68135277116436
+  Student location: lat=1.3468380321270712, lng=103.68135277116436 (same -> distance=0m)
+  Geofence: 200m
+  [FAIL] Check-in -> 201 => status=400 body={"statusCode":400,"code":"FST_ERR_VALIDATION","error":"Bad Request","message":"body must have required property 'session_id'"}
+  Response body: {"statusCode":400,"code":"FST_ERR_VALIDATION","error":"Bad Request","message":"body must have required property 'session_id'"}
+
+STEP 11: Verify check-in in admin session list
+  [PASS] Admin checkins list -> 200 => status=200
+  [FAIL] Check-in record exists => count=0
+
+============================================================
+SMOKESCREEN RESULT: 11 passed, 8 failed out of 19 tests
+SOME TESTS FAILED - see [FAIL] entries above
+============================================================
+

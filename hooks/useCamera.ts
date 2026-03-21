@@ -25,6 +25,7 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
+    const isMounted = useRef(true);
 
     const [isActive, setIsActive] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -39,6 +40,11 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
                     height: { ideal: height },
                 },
             });
+
+            if (!isMounted.current) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                return;
+            }
 
             streamRef.current = mediaStream;
 
@@ -86,7 +92,9 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
     }, []);
 
     useEffect(() => {
+        isMounted.current = true;
         return () => {
+            isMounted.current = false;
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach(track => track.stop());
             }

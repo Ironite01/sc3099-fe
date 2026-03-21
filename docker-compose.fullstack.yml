@@ -9,6 +9,8 @@ services:
       POSTGRES_DB: saiv
     volumes:
       - db_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U saiv -d saiv"]
       interval: 5s

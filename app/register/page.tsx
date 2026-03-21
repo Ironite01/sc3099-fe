@@ -123,16 +123,21 @@ export default function RegisterPage() {
                 // Auto-login then redirect to face enrollment (Step 2 of sign up)
                 const loginResult = await login(email, password);
                 if (loginResult.success) {
+                    // Pass the access token explicitly because the httpOnly cookie
+                    // from the login response may not be stored yet (Next.js proxy).
                     try {
                         const fp = await fpPromise.load();
                         const fpResult = await fp.get();
-                        await registerDevice({
+                        const devResult = await registerDevice({
                             device_fingerprint: fpResult.visitorId,
-                            device_name: navigator?.userAgent?.slice(0, 100) ?? 'Browser',
+                            device_name: navigator?.userAgent ?? 'Browser',
                             platform: 'web',
-                        });
-                    } catch {
-                        // Non-fatal: proceed to enrollment even if device registration fails.
+                        }, loginResult.data?.access_token);
+                        if (!devResult.success) {
+                            console.warn('[SAIV] Device registration after register returned error:', devResult.error);
+                        }
+                    } catch (err) {
+                        console.warn('[SAIV] Device registration after register failed:', err);
                     }
                     router.push('/enroll?fromRegister=true');
                 } else {

@@ -8,17 +8,21 @@ import { getMe, getMyCourses, getMyCheckins, logout } from '@/lib/api';
 import type { User as UserType, Course, StudentCheckin } from '@/lib/types';
 
 function formatCheckinTimestamp(value: string): string | null {
+    if (!value) return null;
+
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
         return null;
     }
 
-    return new Intl.DateTimeFormat(undefined, {
+    return new Intl.DateTimeFormat('en-SG', {
+        timeZone: 'Asia/Singapore',
         day: '2-digit',
         month: 'short',
         year: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
+        hour12: true
     }).format(date);
 }
 

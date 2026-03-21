@@ -1,0 +1,107 @@
+[
+  {
+    "email": "admin@example.com",
+    "device_fingerprint": "smokefp-085741",
+    "created_at": "2026-03-17T08:57:42.378Z"
+  },
+  {
+    "email": "admin@example.com",
+    "device_fingerprint": "smokefp2-085741",
+    "created_at": "2026-03-17T08:57:42.382Z"
+  },
+  {
+    "email": "bindstu20260317160929@example.com",
+    "device_fingerprint": "smokebind-160930196",
+    "created_at": "2026-03-17T16:09:30.283Z"
+  },
+  {
+    "email": "bindstu20260317161002@example.com",
+    "device_fingerprint": "smokebind-161002665",
+    "created_at": "2026-03-17T16:10:02.720Z"
+  },
+  {
+    "email": "bindqr20260317161025@example.com",
+    "device_fingerprint": "smokebind-161025496",
+    "created_at": "2026-03-17T16:10:25.561Z"
+  },
+  {
+    "email": "bindok20260317161122@example.com",
+    "device_fingerprint": "smokebind-161123139",
+    "created_at": "2026-03-17T16:11:23.208Z"
+  },
+  {
+    "email": "testauth@example.com",
+    "device_fingerprint": "test-fingerprint-123456789",
+    "created_at": "2026-03-20T01:46:24.132Z"
+  },
+  {
+    "email": "smokestudent1773971580164@example.com",
+    "device_fingerprint": "smoke-device-fp-1773971580164",
+    "created_at": "2026-03-20T01:53:00.170Z"
+  },
+  {
+    "email": "smokestudent1773971590193@example.com",
+    "device_fingerprint": "smoke-device-fp-1773971590193",
+    "created_at": "2026-03-20T01:53:12.195Z"
+  },
+  {
+    "email": "smokestudent1773971602268@example.com",
+    "device_fingerprint": "smoke-device-fp-1773971602268",
+    "created_at": "2026-03-20T01:53:23.127Z"
+  },
+  {
+    "email": "smokestudent1773971620247@example.com",
+    "device_fingerprint": "smoke-device-fp-1773971620247",
+    "created_at": "2026-03-20T01:53:42.470Z"
+  },
+  {
+    "email": "smokestudent1773971680211@example.com",
+    "device_fingerprint": "smoke-device-fp-1773971680211",
+    "created_at": "2026-03-20T01:54:42.867Z"
+  },
+  {
+    "email": "smokestudent1773971712842@example.com",
+    "device_fingerprint": "smoke-device-fp-1773971712842",
+    "created_at": "2026-03-20T01:55:15.465Z"
+  },
+  {
+    "email": "smokestudent1773971738582@example.com",
+    "device_fingerprint": "smoke-device-fp-1773971738582",
+    "created_at": "2026-03-20T01:55:38.906Z"
+  },
+  {
+    "email": "smokestudent1773971873176@example.com",
+    "device_fingerprint": "smoke-device-fp-1773971873176",
+    "created_at": "2026-03-20T01:57:53.253Z"
+  },
+  {
+    "email": "smokestudent1773972080897@example.com",
+    "device_fingerprint": "smoke-fp-1773972080897",
+    "created_at": "2026-03-20T02:01:22.969Z"
+  },
+  {
+    "email": "acme@gmail.com",
+    "device_fingerprint": "4ed168cdf627a79a02c04891fbb8b47a",
+    "created_at": "2026-03-17T16:48:15.247Z"
+  },
+  {
+    "email": "test1773980006361@example.com",
+    "device_fingerprint": "direct-script-1773980006514",
+    "created_at": "2026-03-20T04:13:26.224Z"
+  },
+  {
+    "email": "huansheng@gmail.com",
+    "device_fingerprint": "4ed168cdf627a79a02c04891fbb8b47a",
+    "created_at": "2026-03-20T04:19:14.765Z"
+  },
+  {
+    "email": "dex@gmail.com",
+    "device_fingerprint": "4ed168cdf627a79a02c04891fbb8b47a",
+    "created_at": "2026-03-20T04:25:03.254Z"
+  },
+  {
+    "email": "student@saiv.com",
+    "device_fingerprint": "4ed168cdf627a79a02c04891fbb8b47a",
+    "created_at": "2026-03-20T04:25:40.172Z"
+  }
+]

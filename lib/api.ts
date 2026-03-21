@@ -37,11 +37,16 @@ export async function apiFetch(path: string, options: ApiFetchOptions = {}): Pro
         ...restOptions,
         credentials: 'include', // Always include cookies
         headers: {
-            'Content-Type': 'application/json',
             ...headers,
         },
     };
-
+    
+    // Add Content-Type only if not already present and we have a body
+    const headersRecord = headers as Record<string, string>;
+    if (body !== undefined && !headersRecord?.['Content-Type']) {
+        (config.headers as any)['Content-Type'] = 'application/json';
+    }
+    
     // Handle body - if it's an object, stringify it
     if (body !== undefined) {
         config.body = typeof body === 'string' ? body : JSON.stringify(body);
@@ -515,19 +520,47 @@ export async function submitAttendance(payload: AttendancePayload): Promise<ApiR
 /**
  * Register (or refresh) the current device fingerprint in the backend.
  * Uses upsert semantics — safe to call on every attendance page load.
+ *
+ * @param payload - Device info to register
+ * @param accessToken - Optional JWT token. When provided, used as `Authorization: Bearer`
+ *                      header instead of relying on cookies. This is essential right after
+ *                      login/register when the httpOnly cookie may not yet be stored.
  */
+function parseUserAgent(ua: string): string {
+    if (!ua || ua === 'Browser' || !ua.includes('/')) return ua;
+
+    let browser = 'Unknown Browser';
+    if (ua.includes('Edg/')) browser = 'Edge';
+    else if (ua.includes('Chrome/') && !ua.includes('Edg/')) browser = 'Chrome';
+    else if (ua.includes('Firefox/')) browser = 'Firefox';
+    else if (ua.includes('Safari/') && !ua.includes('Chrome/')) browser = 'Safari';
+
+    let os = 'Unknown OS';
+    if (ua.includes('Windows NT 10.0')) os = 'Windows 10/11';
+    else if (ua.includes('Windows NT')) os = 'Windows';
+    else if (ua.includes('Mac OS X')) os = 'macOS';
+    else if (ua.includes('Android')) os = 'Android';
+    else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
+    else if (ua.includes('Linux')) os = 'Linux';
+
+    return `${browser} on ${os}`;
+}
+
 export async function registerDevice(payload: {
     device_fingerprint: string;
     device_name?: string;
     platform?: string;
-}): Promise<ApiResponse<DeviceRecord>> {
+}, accessToken?: string): Promise<ApiResponse<DeviceRecord>> {
+    const finalDeviceName = payload.device_name ? parseUserAgent(payload.device_name) : 'Unknown Browser';
+    const finalPayload = { ...payload, device_name: finalDeviceName };
+
     if (USE_MOCK_DATA) {
         return {
             success: true,
             data: {
                 id: 'mock-device-id',
-                device_name: payload.device_name ?? 'Browser',
-                platform: payload.platform ?? 'web',
+                device_name: finalDeviceName,
+                platform: finalPayload.platform ?? 'web',
                 is_trusted: false,
                 trust_score: 'low',
                 is_active: true,
@@ -538,16 +571,33 @@ export async function registerDevice(payload: {
         };
     }
     try {
+        const headers: Record<string, string> = {};
+        if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+        }
         const res = await apiFetch('/api/v1/devices/register', {
             method: 'POST',
-            body: payload,
+            body: finalPayload,
+            headers,
         });
         if (res.ok) {
             const data = await res.json();
             return { success: true, data };
         }
-        return { success: false, error: 'Failed to register device', status: res.status };
-    } catch {
+        const errBody = await res.text().catch(() => '');
+        let parsedMessage = `Device registration failed (${res.status}): ${errBody}`;
+        try {
+            const parsed = JSON.parse(errBody);
+            if (parsed.message) {
+                parsedMessage = parsed.message;
+            } else if (parsed.error) {
+                parsedMessage = parsed.error;
+            }
+        } catch (e) {}
+        
+        return { success: false, error: parsedMessage, status: res.status };
+    } catch (err) {
+        console.error('[SAIV] registerDevice network error:', err);
         return { success: false, error: 'Unable to connect to server.' };
     }
 }
@@ -579,7 +629,20 @@ export async function deleteDevice(deviceId: string): Promise<ApiResponse<void>>
         if (res.status === 204 || res.ok) {
             return { success: true };
         }
-        return { success: false, error: 'Failed to remove device', status: res.status };
+        
+        const errBody = await res.text().catch(() => '');
+        let parsedMessage = `Failed to remove device (${res.status})`;
+        
+        try {
+            const parsed = JSON.parse(errBody);
+            if (parsed.message) {
+                parsedMessage = parsed.message;
+            } else if (parsed.error) {
+                parsedMessage = parsed.error;
+            }
+        } catch (e) {}
+
+        return { success: false, error: parsedMessage, status: res.status };
     } catch {
         return { success: false, error: 'Unable to connect to server.' };
     }

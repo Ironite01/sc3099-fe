@@ -12,6 +12,7 @@ function EnrollPageContent() {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
+    const isMountedRef = useRef(true);
 
     const [step, setStep] = useState<EnrollmentStep>('consent');
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -33,6 +34,11 @@ function EnrollPageContent() {
                     height: { ideal: 480 },
                 },
             });
+
+            if (!isMountedRef.current) {
+                stream.getTracks().forEach(t => t.stop());
+                return;
+            }
 
             streamRef.current = stream;
             setStep('camera');
@@ -58,6 +64,17 @@ function EnrollPageContent() {
             streamRef.current.getTracks().forEach(track => track.stop());
             streamRef.current = null;
         }
+    }, []);
+
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+                streamRef.current = null;
+            }
+        };
     }, []);
 
     // Capture photo from video

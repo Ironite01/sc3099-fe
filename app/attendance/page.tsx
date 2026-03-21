@@ -66,13 +66,12 @@ function AttendanceContent() {
 
                 // Auto-register (or refresh) this device in the backend so the
                 // check-in handler can enforce device-binding per course settings.
-                registerDevice({
+                await registerDevice({
                     device_fingerprint: visitorId,
-                    device_name: navigator?.userAgent?.slice(0, 100) ?? 'Browser',
+                    device_name: navigator?.userAgent ?? 'Browser',
                     platform: 'web',
-                }).catch(() => {
-                    // Non-fatal: the check-in endpoint will reject if binding is
-                    // required and the device is not yet registered.
+                }).catch((err) => {
+                    console.warn('[SAIV] Device auto-registration failed:', err);
                 });
 
                 const sessionResult = await getActiveSessions();

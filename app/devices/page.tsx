@@ -1,19 +1,31 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Smartphone, Trash2, Shield, ShieldCheck, ShieldOff, Clock } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import { getMyDevices, deleteDevice } from '@/lib/api';
+import { getMyDevices, deleteDevice, logout } from '@/lib/api';
 import type { DeviceRecord } from '@/lib/types';
 
+/** 
+ * Formats timestamps to Singapore Time.
+ * Relies on the backend providing ISO8601 strings with explicit '+08:00' offset.
+ */
 function formatDate(value: string): string {
-    return new Intl.DateTimeFormat(undefined, {
+    if (!value) return 'N/A';
+    
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return value;
+    
+    return new Intl.DateTimeFormat('en-SG', {
+        timeZone: 'Asia/Singapore',
         day: '2-digit',
         month: 'short',
         year: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
-    }).format(new Date(value));
+        hour12: true
+    }).format(date);
 }
 
 function TrustBadge({ device }: { device: DeviceRecord }) {
@@ -39,6 +51,7 @@ function TrustBadge({ device }: { device: DeviceRecord }) {
 }
 
 export default function MyDevicesPage() {
+    const router = useRouter();
     const [devices, setDevices] = useState<DeviceRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -57,20 +70,24 @@ export default function MyDevicesPage() {
     }, []);
 
     const handleDelete = async (deviceId: string) => {
-        if (confirmDeleteId !== deviceId) {
-            // First tap: ask for confirmation
-            setConfirmDeleteId(deviceId);
-            return;
-        }
         setDeletingId(deviceId);
         setConfirmDeleteId(null);
-        const result = await deleteDevice(deviceId);
-        if (result.success) {
-            setDevices((prev) => prev.filter((d) => d.id !== deviceId));
-        } else {
-            setError(result.error || 'Failed to remove device');
+        
+        try {
+            const result = await deleteDevice(deviceId);
+            
+            if (result.success || result.status === 404) {
+                await logout();
+                router.push('/login');
+                return;
+            } else {
+                setError(result.error || 'Failed to remove device');
+            }
+        } catch (err) {
+            setError('An unexpected error occurred while removing the device.');
+        } finally {
+            setDeletingId(null);
         }
-        setDeletingId(null);
     };
 
     return (
@@ -94,16 +111,20 @@ export default function MyDevicesPage() {
                 )}
 
                 {loading ? (
-                    <div className="loading-state">
-                        <div className="spinner large" />
-                        <p>Loading devices…</p>
+                    <div
+                        className="loading-state"
+                        style={{ padding: '3rem 0', textAlign: 'center' }}
+                    >
+                        <div className="spinner large" style={{ margin: '0 auto 1rem' }} />
+                        <p>Loading your devices...</p>
                     </div>
                 ) : devices.length === 0 ? (
-                    <div className="dashboard-empty" style={{ marginTop: '2rem' }}>
-                        <Smartphone size={36} />
+                    <div className="dashboard-empty">
+                        <Smartphone size={48} />
                         <p>No devices registered yet.</p>
-                        <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>
-                            Your device will be registered automatically when you next check in.
+                        <p style={{ fontSize: '0.8rem', opacity: 0.7 }}>
+                            Devices are automatically registered when you check-in for the first
+                            time.
                         </p>
                     </div>
                 ) : (
@@ -111,50 +132,84 @@ export default function MyDevicesPage() {
                         {devices.map((device) => (
                             <div key={device.id} className="device-card">
                                 <div className="device-card-icon">
-                                    <Smartphone size={22} />
+                                    <Smartphone size={24} />
                                 </div>
                                 <div className="device-card-info">
-                                    <div className="device-card-name">
-                                        {device.device_name ?? 'Unknown device'}
-                                    </div>
+                                    <h3 className="device-card-name">
+                                        {device.device_name || 'Unknown Device'}
+                                    </h3>
                                     <div className="device-card-meta">
-                                        {device.platform && <span>{device.platform}</span>}
+                                        <span style={{ textTransform: 'capitalize' }}>
+                                            {device.platform || 'Web'}
+                                        </span>
+                                        <span className="dot">•</span>
                                         <TrustBadge device={device} />
                                     </div>
                                     <div className="device-card-dates">
                                         <span>
-                                            <Clock size={11} /> First seen {formatDate(device.first_seen_at)}
+                                            <Clock size={12} /> First seen:{' '}
+                                            {formatDate(device.first_seen_at)}
                                         </span>
                                         <span>
-                                            Last seen {formatDate(device.last_seen_at)}
+                                            <Clock size={12} /> Last used:{' '}
+                                            {formatDate(device.last_seen_at)}
                                         </span>
-                                        <span>{device.total_checkins} check-in{device.total_checkins !== 1 ? 's' : ''}</span>
                                     </div>
                                 </div>
                                 <button
-                                    className={`device-delete-btn ${confirmDeleteId === device.id ? 'device-delete-confirm' : ''}`}
-                                    onClick={() => handleDelete(device.id)}
+                                    className="device-delete-btn"
+                                    onClick={() => setConfirmDeleteId(device.id)}
                                     disabled={deletingId === device.id}
-                                    aria-label={confirmDeleteId === device.id ? 'Confirm remove device' : 'Remove device'}
-                                    title={confirmDeleteId === device.id ? 'Tap again to confirm removal' : 'Remove this device'}
+                                    title="Revoke device access"
                                 >
-                                    {deletingId === device.id
-                                        ? <div className="spinner small" />
-                                        : confirmDeleteId === device.id
-                                            ? 'Confirm'
-                                            : <Trash2 size={16} />
-                                    }
+                                    {deletingId === device.id ? (
+                                        <div className="spinner" style={{ width: 14, height: 14 }} />
+                                    ) : (
+                                        <Trash2 size={18} />
+                                    )}
                                 </button>
                             </div>
                         ))}
                     </div>
                 )}
 
-                <p className="devices-note">
-                    <Shield size={13} /> Trust level is managed by your instructor. A device
-                    marked as <strong>trusted</strong> lowers your check-in risk score.
-                </p>
+                <div className="devices-note">
+                    <ShieldCheck size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <p>
+                        For your security, you can only have one active device bound to your
+                        account at a time. If you switch phones or browsers, you must revoke the
+                        previous one here.
+                    </p>
+                </div>
             </div>
+
+            {/* Deletion Confirmation Modal */}
+            {confirmDeleteId && (
+                <div className="modal-overlay" onClick={() => setConfirmDeleteId(null)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <h2 className="modal-title">Revoke Device?</h2>
+                        <p className="modal-description">
+                            Are you sure you want to remove this device? You will be signed out
+                            immediately and will need to log in again to register a new device.
+                        </p>
+                        <div className="modal-actions">
+                            <button
+                                className="secondary-button"
+                                onClick={() => setConfirmDeleteId(null)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="primary-button"
+                                style={{ background: 'var(--color-error)' }}
+                                onClick={() => handleDelete(confirmDeleteId)}
+                            >
+                                {deletingId === confirmDeleteId ? 'Revoking...' : 'Yes, Revoke'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }

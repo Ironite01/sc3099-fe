@@ -17,6 +17,7 @@ export default function ScanPage() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
     const rafRef = useRef<number | null>(null);
+    const isMountedRef = useRef(true);
 
     const [status, setStatus] = useState<ScanStatus>('scanning');
     const [statusText, setStatusText] = useState('Point camera at QR code');
@@ -132,6 +133,10 @@ export default function ScanPage() {
         for (const c of constraints) {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia(c);
+                if (!isMountedRef.current) {
+                    stream.getTracks().forEach(t => t.stop());
+                    return;
+                }
                 streamRef.current = stream;
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
@@ -148,8 +153,12 @@ export default function ScanPage() {
     }, [stopCamera, scanFrame]);
 
     useEffect(() => {
+        isMountedRef.current = true;
         startCamera(facingMode);
-        return () => stopCamera();
+        return () => {
+            isMountedRef.current = false;
+            stopCamera();
+        };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [facingMode]);
 

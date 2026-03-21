@@ -4,7 +4,7 @@ import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 import fpPromise from '@fingerprintjs/fingerprintjs';
-import { login, registerDevice } from '@/lib/api';
+import { login, registerDevice, logout } from '@/lib/api';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -59,16 +59,26 @@ export default function LoginPage() {
 
             if (result.success) {
                 // Automatically bind current browser/device after successful login.
+                // Pass the access token explicitly because the httpOnly cookie
+                // from the login response may not be stored yet (Next.js proxy).
                 try {
                     const fp = await fpPromise.load();
                     const fpResult = await fp.get();
-                    await registerDevice({
+                    const devResult = await registerDevice({
                         device_fingerprint: fpResult.visitorId,
-                        device_name: navigator?.userAgent?.slice(0, 100) ?? 'Browser',
+                        device_name: navigator?.userAgent ?? 'Browser',
                         platform: 'web',
-                    });
-                } catch {
-                    // Non-fatal: user can still continue; device can be registered later.
+                    }, result.data?.access_token);
+                    
+                    if (!devResult.success) {
+                        setError(devResult.error || 'Device registration failed. Please unbind from previous account if shared.');
+                        await logout();
+                        return;
+                    }
+                } catch (err: any) {
+                    setError('Device fingerprinting blocked. Please disable ad-blockers or shields.');
+                    await logout();
+                    return;
                 }
 
                 // Cache user info so dashboard can read the real name even in mock mode
