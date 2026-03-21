@@ -10,10 +10,9 @@ import type { User as UserType, Course, StudentCheckin } from '@/lib/types';
 function formatCheckinTimestamp(value: string): string | null {
     if (!value) return null;
 
-    const hasTimezone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(value);
-    const normalized = hasTimezone ? value : `${value}+08:00`;
-
-    const date = new Date(normalized);
+    // Keep parsing behavior identical to /devices page.
+    // This correctly handles ISO with offset/Z, and local-style strings.
+    const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
         return null;
     }
