@@ -7,6 +7,7 @@ interface PageHeaderProps {
     title: string;
     showBack?: boolean;
     backHref?: string;
+    onBack?: () => void;
     rightAction?: React.ReactNode;
 }
 
@@ -14,11 +15,16 @@ export default function PageHeader({
     title,
     showBack = true,
     backHref,
+    onBack,
     rightAction
 }: PageHeaderProps) {
     const router = useRouter();
 
     const handleBack = () => {
+        if (onBack) {
+            onBack();
+            return;
+        }
         if (backHref) {
             router.push(backHref);
         } else {

@@ -10,7 +10,10 @@ import type { User as UserType, Course, StudentCheckin } from '@/lib/types';
 function formatCheckinTimestamp(value: string): string | null {
     if (!value) return null;
 
-    const date = new Date(value);
+    const hasTimezone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(value);
+    const normalized = hasTimezone ? value : `${value}+08:00`;
+
+    const date = new Date(normalized);
     if (Number.isNaN(date.getTime())) {
         return null;
     }

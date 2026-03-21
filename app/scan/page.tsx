@@ -18,6 +18,7 @@ export default function ScanPage() {
     const streamRef = useRef<MediaStream | null>(null);
     const rafRef = useRef<number | null>(null);
     const isMountedRef = useRef(true);
+    const isNavigatingRef = useRef(false);
 
     const [status, setStatus] = useState<ScanStatus>('scanning');
     const [statusText, setStatusText] = useState('Point camera at QR code');
@@ -57,10 +58,32 @@ export default function ScanPage() {
     };
 
     const stopCamera = useCallback(() => {
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
-        streamRef.current?.getTracks().forEach(t => t.stop());
+        if (rafRef.current) {
+            cancelAnimationFrame(rafRef.current);
+            rafRef.current = null;
+        }
+        const stream = streamRef.current;
+        if (stream) {
+            stream.getTracks().forEach((track) => {
+                track.enabled = false;
+                track.stop();
+            });
+        }
+        if (videoRef.current) {
+            videoRef.current.pause();
+            videoRef.current.srcObject = null;
+        }
         streamRef.current = null;
     }, []);
+
+    const navigateToDashboard = useCallback(async () => {
+        if (isNavigatingRef.current) return;
+        isNavigatingRef.current = true;
+        stopCamera();
+        // Give the browser one short frame to release camera hardware before route transition.
+        await new Promise((resolve) => setTimeout(resolve, 80));
+        window.location.assign('/dashboard');
+    }, [stopCamera]);
 
     const scanFrame = useCallback(() => {
         const video = videoRef.current;
@@ -155,8 +178,25 @@ export default function ScanPage() {
     useEffect(() => {
         isMountedRef.current = true;
         startCamera(facingMode);
+
+        const stopOnPageHide = () => stopCamera();
+        const stopOnVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                stopCamera();
+            }
+        };
+
+        window.addEventListener('pagehide', stopOnPageHide);
+        window.addEventListener('beforeunload', stopOnPageHide);
+        document.addEventListener('visibilitychange', stopOnVisibilityChange);
+        window.addEventListener('popstate', stopOnPageHide);
+
         return () => {
             isMountedRef.current = false;
+            window.removeEventListener('pagehide', stopOnPageHide);
+            window.removeEventListener('beforeunload', stopOnPageHide);
+            document.removeEventListener('visibilitychange', stopOnVisibilityChange);
+            window.removeEventListener('popstate', stopOnPageHide);
             stopCamera();
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -171,10 +211,11 @@ export default function ScanPage() {
             <PageHeader
                 title="Scan QR Code"
                 backHref="/dashboard"
+                onBack={navigateToDashboard}
                 rightAction={
                     <button
                         className="icon-button"
-                        onClick={() => { stopCamera(); router.push('/dashboard'); }}
+                        onClick={navigateToDashboard}
                         aria-label="Close scanner"
                     >
                         <X size={20} />

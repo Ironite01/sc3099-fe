@@ -1,2 +1,0 @@
-COLUMN_TYPES: [{"column_name":"first_seen_at","data_type":"timestamp without time zone","is_nullable":"NO"},{"column_name":"last_seen_at","data_type":"timestamp without time zone","is_nullable":"NO"}]
-FIX_TEST: {"raw":"2026-03-20 05:16:09.391212","fix_double_atz":"2026-03-20 13:16:09","fix_add_8h":"2026-03-20 13:16:09"}
