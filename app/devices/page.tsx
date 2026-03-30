@@ -3,20 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Smartphone, Trash2, Shield, ShieldCheck, ShieldOff, Clock } from 'lucide-react';
+import fpPromise from '@fingerprintjs/fingerprintjs';
 import PageHeader from '@/components/PageHeader';
-import { getMyDevices, deleteDevice, logout } from '@/lib/api';
+import { getMyDevices, deleteDevice, logout, registerDevice } from '@/lib/api';
 import type { DeviceRecord } from '@/lib/types';
 
-/** 
- * Formats timestamps to Singapore Time.
- * Relies on the backend providing ISO8601 strings with explicit '+08:00' offset.
- */
+const DEVICE_BIND_ERROR_KEY = 'saiv_device_bind_error';
+
 function formatDate(value: string): string {
     if (!value) return 'N/A';
-    
     const date = new Date(value);
     if (isNaN(date.getTime())) return value;
-    
     return new Intl.DateTimeFormat('en-SG', {
         timeZone: 'Asia/Singapore',
         day: '2-digit',
@@ -24,7 +21,7 @@ function formatDate(value: string): string {
         year: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
-        hour12: true
+        hour12: true,
     }).format(date);
 }
 
@@ -54,14 +51,24 @@ export default function MyDevicesPage() {
     const router = useRouter();
     const [devices, setDevices] = useState<DeviceRecord[]>([]);
     const [loading, setLoading] = useState(true);
+    const [binding, setBinding] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [deviceBindHint, setDeviceBindHint] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const normalizedError = (error || '').trim().toLowerCase();
+    const normalizedHint = (deviceBindHint || '').trim().toLowerCase();
+    const showDeviceBindHint = Boolean(deviceBindHint) && normalizedHint !== normalizedError;
 
     useEffect(() => {
+        setDeviceBindHint(sessionStorage.getItem(DEVICE_BIND_ERROR_KEY));
         getMyDevices().then((res) => {
             if (res.success && res.data) {
                 setDevices(res.data);
+                if (res.data.length > 0) {
+                    sessionStorage.removeItem(DEVICE_BIND_ERROR_KEY);
+                    setDeviceBindHint(null);
+                }
             } else {
                 setError(res.error || 'Failed to load devices');
             }
@@ -69,21 +76,50 @@ export default function MyDevicesPage() {
         });
     }, []);
 
+    const handleBindCurrentDevice = async () => {
+        setBinding(true);
+        setError(null);
+        try {
+            const fp = await fpPromise.load();
+            const fpResult = await fp.get();
+            const bindResult = await registerDevice({
+                device_fingerprint: fpResult.visitorId,
+                device_name: navigator?.userAgent ?? 'Browser',
+                platform: 'web',
+            });
+            if (!bindResult.success) {
+                setError(bindResult.error || 'Failed to bind this device.');
+                setDeviceBindHint(null);
+                return;
+            }
+
+            sessionStorage.removeItem(DEVICE_BIND_ERROR_KEY);
+            setDeviceBindHint(null);
+            const refreshed = await getMyDevices();
+            if (refreshed.success && refreshed.data) {
+                setDevices(refreshed.data);
+            } else {
+                setError(refreshed.error || 'Failed to refresh devices');
+            }
+        } catch {
+            setError('Failed to bind this device.');
+        } finally {
+            setBinding(false);
+        }
+    };
+
     const handleDelete = async (deviceId: string) => {
         setDeletingId(deviceId);
         setConfirmDeleteId(null);
-        
         try {
             const result = await deleteDevice(deviceId);
-            
             if (result.success || result.status === 404) {
                 await logout();
                 router.push('/login');
                 return;
-            } else {
-                setError(result.error || 'Failed to remove device');
             }
-        } catch (err) {
+            setError(result.error || 'Failed to remove device');
+        } catch {
             setError('An unexpected error occurred while removing the device.');
         } finally {
             setDeletingId(null);
@@ -100,9 +136,14 @@ export default function MyDevicesPage() {
             <div className="page-content">
                 <p className="devices-intro">
                     Devices registered to your account for check-in authentication. Removing a
-                    device will unbind it — your next check-in will automatically re-register
-                    whatever device you use.
+                    device will unbind it and you must bind a device again before check-in.
                 </p>
+
+                {showDeviceBindHint && (
+                    <div className="error-message" style={{ marginBottom: '1rem' }}>
+                        {deviceBindHint}
+                    </div>
+                )}
 
                 {error && (
                     <div className="error-message" style={{ marginBottom: '1rem' }}>
@@ -111,10 +152,7 @@ export default function MyDevicesPage() {
                 )}
 
                 {loading ? (
-                    <div
-                        className="loading-state"
-                        style={{ padding: '3rem 0', textAlign: 'center' }}
-                    >
+                    <div className="loading-state" style={{ padding: '3rem 0', textAlign: 'center' }}>
                         <div className="spinner large" style={{ margin: '0 auto 1rem' }} />
                         <p>Loading your devices...</p>
                     </div>
@@ -123,9 +161,17 @@ export default function MyDevicesPage() {
                         <Smartphone size={48} />
                         <p>No devices registered yet.</p>
                         <p style={{ fontSize: '0.8rem', opacity: 0.7 }}>
-                            Devices are automatically registered when you check-in for the first
-                            time.
+                            Bind this browser now. If binding fails because it belongs to another
+                            account, revoke it from that account first.
                         </p>
+                        <button
+                            className="secondary-button"
+                            style={{ marginTop: '0.75rem' }}
+                            onClick={handleBindCurrentDevice}
+                            disabled={binding}
+                        >
+                            {binding ? 'Binding...' : 'Bind This Device'}
+                        </button>
                     </div>
                 ) : (
                     <div className="devices-list">
@@ -147,12 +193,10 @@ export default function MyDevicesPage() {
                                     </div>
                                     <div className="device-card-dates">
                                         <span>
-                                            <Clock size={12} /> First seen:{' '}
-                                            {formatDate(device.first_seen_at)}
+                                            <Clock size={12} /> First seen: {formatDate(device.first_seen_at)}
                                         </span>
                                         <span>
-                                            <Clock size={12} /> Last used:{' '}
-                                            {formatDate(device.last_seen_at)}
+                                            <Clock size={12} /> Last used: {formatDate(device.last_seen_at)}
                                         </span>
                                     </div>
                                 </div>
@@ -176,27 +220,22 @@ export default function MyDevicesPage() {
                 <div className="devices-note">
                     <ShieldCheck size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
                     <p>
-                        For your security, you can only have one active device bound to your
-                        account at a time. If you switch phones or browsers, you must revoke the
-                        previous one here.
+                        For security, only one active device should be used for check-in. If you
+                        switch browser or device, revoke old binding first.
                     </p>
                 </div>
             </div>
 
-            {/* Deletion Confirmation Modal */}
             {confirmDeleteId && (
                 <div className="modal-overlay" onClick={() => setConfirmDeleteId(null)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <h2 className="modal-title">Revoke Device?</h2>
                         <p className="modal-description">
                             Are you sure you want to remove this device? You will be signed out
-                            immediately and will need to log in again to register a new device.
+                            immediately and must log in again to register a device.
                         </p>
                         <div className="modal-actions">
-                            <button
-                                className="secondary-button"
-                                onClick={() => setConfirmDeleteId(null)}
-                            >
+                            <button className="secondary-button" onClick={() => setConfirmDeleteId(null)}>
                                 Cancel
                             </button>
                             <button

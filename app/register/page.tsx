@@ -4,7 +4,9 @@ import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 import fpPromise from '@fingerprintjs/fingerprintjs';
-import { register, login, registerDevice } from '@/lib/api';
+import { getMyDevices, register, login, registerDevice } from '@/lib/api';
+
+const DEVICE_BIND_ERROR_KEY = 'saiv_device_bind_error';
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -117,6 +119,7 @@ export default function RegisterPage() {
                 email,
                 password,
                 full_name: fullName,
+                role: 'student',
             });
 
             if (result.success) {
@@ -135,9 +138,32 @@ export default function RegisterPage() {
                         }, loginResult.data?.access_token);
                         if (!devResult.success) {
                             console.warn('[SAIV] Device registration after register returned error:', devResult.error);
+                            const isFingerprintConflict = /device fingerprint already registered/i.test(devResult.error || '');
+                            if (isFingerprintConflict) {
+                                const devices = await getMyDevices();
+                                if (devices.success && (devices.data?.length || 0) > 0) {
+                                    sessionStorage.removeItem(DEVICE_BIND_ERROR_KEY);
+                                } else {
+                                    sessionStorage.setItem(
+                                        DEVICE_BIND_ERROR_KEY,
+                                        devResult.error || 'Device registration failed. Check-in may be blocked until this device is bound.'
+                                    );
+                                }
+                            } else {
+                                sessionStorage.setItem(
+                                    DEVICE_BIND_ERROR_KEY,
+                                    devResult.error || 'Device registration failed. Check-in may be blocked until this device is bound.'
+                                );
+                            }
+                        } else {
+                            sessionStorage.removeItem(DEVICE_BIND_ERROR_KEY);
                         }
                     } catch (err) {
                         console.warn('[SAIV] Device registration after register failed:', err);
+                        sessionStorage.setItem(
+                            DEVICE_BIND_ERROR_KEY,
+                            'Device registration failed. Check-in may be blocked until this device is bound.'
+                        );
                     }
                     router.push('/enroll?fromRegister=true');
                 } else {

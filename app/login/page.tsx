@@ -4,7 +4,9 @@ import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 import fpPromise from '@fingerprintjs/fingerprintjs';
-import { login, registerDevice, logout } from '@/lib/api';
+import { getMyDevices, login, registerDevice } from '@/lib/api';
+
+const DEVICE_BIND_ERROR_KEY = 'saiv_device_bind_error';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -69,16 +71,37 @@ export default function LoginPage() {
                         device_name: navigator?.userAgent ?? 'Browser',
                         platform: 'web',
                     }, result.data?.access_token);
-                    
+
+                    // Do not block login on device registration failure.
+                    // Device-binding is enforced during check-in based on course settings.
                     if (!devResult.success) {
-                        setError(devResult.error || 'Device registration failed. Please unbind from previous account if shared.');
-                        await logout();
-                        return;
+                        console.warn('[SAIV] Device registration after login returned error:', devResult.error);
+                        const isFingerprintConflict = /device fingerprint already registered/i.test(devResult.error || '');
+                        if (isFingerprintConflict) {
+                            const devices = await getMyDevices();
+                            if (devices.success && (devices.data?.length || 0) > 0) {
+                                sessionStorage.removeItem(DEVICE_BIND_ERROR_KEY);
+                            } else {
+                                sessionStorage.setItem(
+                                    DEVICE_BIND_ERROR_KEY,
+                                    devResult.error || 'Device registration failed. Check-in may be blocked until this device is bound.'
+                                );
+                            }
+                        } else {
+                            sessionStorage.setItem(
+                                DEVICE_BIND_ERROR_KEY,
+                                devResult.error || 'Device registration failed. Check-in may be blocked until this device is bound.'
+                            );
+                        }
+                    } else {
+                        sessionStorage.removeItem(DEVICE_BIND_ERROR_KEY);
                     }
                 } catch (err: any) {
-                    setError('Device fingerprinting blocked. Please disable ad-blockers or shields.');
-                    await logout();
-                    return;
+                    console.warn('[SAIV] Device registration after login failed:', err);
+                    sessionStorage.setItem(
+                        DEVICE_BIND_ERROR_KEY,
+                        'Device registration failed. Check-in may be blocked until this device is bound.'
+                    );
                 }
 
                 // Cache user info so dashboard can read the real name even in mock mode

@@ -7,6 +7,8 @@ import PageHeader from '@/components/PageHeader';
 import { getMe, getMyCourses, getMyCheckins, logout } from '@/lib/api';
 import type { User as UserType, Course, StudentCheckin } from '@/lib/types';
 
+const DEVICE_BIND_ERROR_KEY = 'saiv_device_bind_error';
+
 function formatCheckinTimestamp(value: string): string | null {
     if (!value) return null;
 
@@ -35,9 +37,11 @@ export default function DashboardPage() {
     const [recentCheckins, setRecentCheckins] = useState<StudentCheckin[]>([]);
     const [coursesError, setCoursesError] = useState<string | null>(null);
     const [checkinsError, setCheckinsError] = useState<string | null>(null);
+    const [deviceBindError, setDeviceBindError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        setDeviceBindError(sessionStorage.getItem(DEVICE_BIND_ERROR_KEY));
         async function init() {
             const [userResult, coursesResult, checkinsResult] = await Promise.all([
                 getMe(),
@@ -125,6 +129,12 @@ export default function DashboardPage() {
                                 <h2 className="dashboard-greeting-name">{firstName}</h2>
                             </div>
                         </div>
+
+                        {deviceBindError && (
+                            <div className="error-message" style={{ marginBottom: '1rem' }}>
+                                {deviceBindError} Open My Devices to rebind this browser/device before check-in.
+                            </div>
+                        )}
 
                         {/* Primary CTA — Scan QR */}
                         <button

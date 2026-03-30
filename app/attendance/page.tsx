@@ -10,9 +10,11 @@ import StatusResult from '@/components/StatusResult';
 import { useCamera } from '@/hooks/useCamera';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useLiveness } from '@/hooks/useLiveness';
-import { getActiveSessions, submitAttendance, registerDevice } from '@/lib/api';
+import { getActiveSessions, getMyDevices, submitAttendance, registerDevice } from '@/lib/api';
 import type { Session, GeolocationCoords, AttendanceResult } from '@/lib/types';
 import fpPromise from '@fingerprintjs/fingerprintjs';
+
+const DEVICE_BIND_ERROR_KEY = 'saiv_device_bind_error';
 
 type AttendanceStep =
     | 'loading'
@@ -66,13 +68,36 @@ function AttendanceContent() {
 
                 // Auto-register (or refresh) this device in the backend so the
                 // check-in handler can enforce device-binding per course settings.
-                await registerDevice({
+                const deviceRegistration = await registerDevice({
                     device_fingerprint: visitorId,
                     device_name: navigator?.userAgent ?? 'Browser',
                     platform: 'web',
-                }).catch((err) => {
-                    console.warn('[SAIV] Device auto-registration failed:', err);
                 });
+                if (!deviceRegistration.success) {
+                    const msg = deviceRegistration.error || 'Device registration failed.';
+                    const isFingerprintConflict = /device fingerprint already registered/i.test(msg);
+                    if (isFingerprintConflict) {
+                        const devices = await getMyDevices();
+                        if (devices.success && (devices.data?.length || 0) > 0) {
+                            sessionStorage.removeItem(DEVICE_BIND_ERROR_KEY);
+                        } else {
+                            sessionStorage.setItem(DEVICE_BIND_ERROR_KEY, msg);
+                            setError(
+                                `${msg} Please unbind the old account from this device in My Devices, or use another browser/device before check-in.`
+                            );
+                            setStep('error');
+                            return;
+                        }
+                    } else {
+                        sessionStorage.setItem(DEVICE_BIND_ERROR_KEY, msg);
+                        setError(
+                            `${msg} Please unbind the old account from this device in My Devices, or use another browser/device before check-in.`
+                        );
+                        setStep('error');
+                        return;
+                    }
+                }
+                sessionStorage.removeItem(DEVICE_BIND_ERROR_KEY);
 
                 const sessionResult = await getActiveSessions();
 

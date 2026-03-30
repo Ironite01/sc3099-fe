@@ -147,6 +147,7 @@ export async function register(payload: RegisterPayload): Promise<{
             else if (/full_name/.test(raw)) clean = 'Please enter your full name (at least 4 characters).';
             else if (/email/.test(raw)) clean = 'Please enter a valid email address.';
             else if (/password/.test(raw)) clean = 'Password does not meet the requirements.';
+            else if (/required property 'role'|role/.test(raw)) clean = 'Registration role is missing. Please refresh and try again.';
             return { success: false, error: clean, status: 400 };
         }
 
@@ -474,7 +475,9 @@ export async function submitAttendance(payload: AttendancePayload): Promise<ApiR
                 longitude: payload.location.longitude,
                 location_accuracy_meters: payload.location.accuracy || 10,
                 device_fingerprint: payload.device_fingerprint,
-                liveness_challenge_response: payload.liveness_token,
+                // Backend ML check-in flow expects base64 image challenge response.
+                // Use captured face image as primary source; keep token as fallback.
+                liveness_challenge_response: payload.face_image || payload.liveness_token,
                 qr_code: payload.qr_code || '',
             },
         });
@@ -497,6 +500,7 @@ export async function submitAttendance(payload: AttendancePayload): Promise<ApiR
             else if (/device not registered/i.test(raw)) msg = 'Your device is not registered. Please try again — registration is automatic.';
             else if (/device.*(deactivated|inactive)/i.test(raw)) msg = 'Your device has been deactivated. Please contact your instructor.';
             else if (/device fingerprint.*required/i.test(raw)) msg = 'Device verification is required for this session.';
+            else if (/device is not allowed/i.test(raw)) msg = 'This device is not trusted yet. Please use your bound device or contact instructor/admin.';
             return { success: false, error: msg, status: 400 };
         }
 
@@ -546,13 +550,67 @@ function parseUserAgent(ua: string): string {
     return `${browser} on ${os}`;
 }
 
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+}
+
+async function getOrCreateDevicePublicKey(): Promise<string> {
+    if (typeof window === 'undefined') return '';
+
+    const STORAGE_KEY = 'saiv_device_public_key_spki_b64';
+    const cached = window.localStorage.getItem(STORAGE_KEY);
+    if (cached && cached.length > 0) {
+        return cached;
+    }
+
+    const subtle = window.crypto?.subtle;
+    if (!subtle) return '';
+
+    const keyPair = await subtle.generateKey(
+        {
+            name: 'ECDSA',
+            namedCurve: 'P-256',
+        },
+        true,
+        ['sign', 'verify']
+    );
+
+    const spki = await subtle.exportKey('spki', keyPair.publicKey);
+    const publicKeyB64 = arrayBufferToBase64(spki);
+    window.localStorage.setItem(STORAGE_KEY, publicKeyB64);
+    return publicKeyB64;
+}
+
 export async function registerDevice(payload: {
     device_fingerprint: string;
     device_name?: string;
     platform?: string;
+    public_key?: string;
 }, accessToken?: string): Promise<ApiResponse<DeviceRecord>> {
     const finalDeviceName = payload.device_name ? parseUserAgent(payload.device_name) : 'Unknown Browser';
-    const finalPayload = { ...payload, device_name: finalDeviceName };
+    let publicKey = payload.public_key ?? '';
+    if (!publicKey) {
+        try {
+            publicKey = await getOrCreateDevicePublicKey();
+        } catch {
+            publicKey = '';
+        }
+    }
+
+    if (!publicKey) {
+        return {
+            success: false,
+            error: 'Could not generate device public key on this browser.',
+            status: 400,
+        };
+    }
+
+    const finalPayload = { ...payload, device_name: finalDeviceName, public_key: publicKey };
 
     if (USE_MOCK_DATA) {
         return {

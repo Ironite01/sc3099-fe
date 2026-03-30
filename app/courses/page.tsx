@@ -57,16 +57,6 @@ export default function CoursesPage() {
             />
 
             <div className="page-content">
-                <div style={{ marginBottom: '1rem' }}>
-                    <button
-                            className="primary-button"
-                            style={{ width: '100%' }}
-                        onClick={() => router.push('/dashboard')}
-                    >
-                        Back to Dashboard
-                    </button>
-                </div>
-
                 {isLoading ? (
                     <div className="loading-state">
                         <div className="spinner large" />
