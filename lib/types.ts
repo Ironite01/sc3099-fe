@@ -55,6 +55,7 @@ export interface AttendancePayload {
     face_image: string;
     location: GeolocationCoords;
     liveness_token: string;
+    liveness_challenge_type?: 'passive' | 'blink' | 'head_turn';
     device_fingerprint: string;
     qr_code?: string;
 }

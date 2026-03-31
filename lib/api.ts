@@ -490,6 +490,7 @@ export async function submitAttendance(payload: AttendancePayload): Promise<ApiR
                 // Backend ML check-in flow expects base64 image challenge response.
                 // Use captured face image as primary source; keep token as fallback.
                 liveness_challenge_response: payload.face_image || payload.liveness_token,
+                liveness_challenge_type: payload.liveness_challenge_type || 'passive',
                 qr_code: payload.qr_code || '',
             },
         });
