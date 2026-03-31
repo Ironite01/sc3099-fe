@@ -478,10 +478,6 @@ export async function submitAttendance(payload: AttendancePayload): Promise<ApiR
     if (!Number.isFinite(payload.location?.latitude) || !Number.isFinite(payload.location?.longitude)) {
         return { success: false, error: 'Location is invalid. Please allow precise location and retry.', status: 400 };
     }
-    if (!payload.qr_code) {
-        return { success: false, error: 'Missing QR code payload. Please scan/open the latest session link again.', status: 400 };
-    }
-
     try {
         const response = await apiFetch('/api/v1/checkins', {
             method: 'POST',

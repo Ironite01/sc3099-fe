@@ -1296,31 +1296,6 @@ body {
   transition: stroke-dashoffset 0.1s linear;
 }
 
-.face-guide.detecting {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7);
-  animation: pulse-guide 1.5s infinite;
-}
-
-.face-guide.success {
-  border-color: var(--color-success);
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.8);
-}
-
-@keyframes pulse-guide {
-  0% {
-    border-color: var(--color-primary);
-  }
-
-  50% {
-    border-color: rgba(99, 102, 241, 0.5);
-  }
-
-  100% {
-    border-color: var(--color-primary);
-  }
-}
-
 /* ============================================
    Course Card Component
    ============================================ */

@@ -248,6 +248,7 @@ function AttendanceContent() {
             default: return selectedSession?.course_code || 'Attendance';
         }
     };
+    const ringProgress = Math.max(0, Math.min(100, liveness.detectionProgress));
 
     return (
         <main className="page-container">
@@ -308,10 +309,11 @@ function AttendanceContent() {
                                             stroke={liveness.isComplete ? "var(--color-success)" : "var(--color-primary)"}
                                             strokeWidth="4"
                                             strokeLinecap="round"
-                                            strokeDasharray="875 9999"
-                                            strokeDashoffset={875 - (875 * liveness.detectionProgress) / 100}
+                                            pathLength={100}
+                                            strokeDasharray={`${ringProgress} 100`}
+                                            strokeDashoffset={0}
                                             className="scan-ring-circle"
-                                            style={{ opacity: liveness.detectionProgress > 0 || liveness.isComplete ? 1 : 0 }}
+                                            style={{ opacity: liveness.status === 'detecting' || liveness.isComplete ? 1 : 0 }}
                                         />
                                     </svg>
                                 </div>
