@@ -428,6 +428,17 @@ body {
   color: var(--color-text-muted);
 }
 
+.login-footer .register-link {
+  color: #7aa2ff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 600;
+}
+
+.login-footer .register-link:hover {
+  color: #9cb8ff;
+}
+
 /* ============================================
    Responsive Design
    ============================================ */

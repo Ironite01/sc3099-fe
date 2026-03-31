@@ -536,6 +536,18 @@ export async function submitAttendance(payload: AttendancePayload): Promise<ApiR
             return { success: false, error: 'Face verification failed', status: 403 };
         }
 
+        if (response.status === 404) {
+            const errorData = await response.json().catch(() => ({}));
+            const raw: string = errorData.message || errorData.detail || '';
+            let msg = raw || 'Requested resource not found.';
+            if (/device not found/i.test(raw)) {
+                msg = 'This browser/device is not bound to your account. Open My Devices and bind this device before check-in.';
+            } else if (/session not found/i.test(raw)) {
+                msg = 'Session was not found. Please refresh and scan a valid session link.';
+            }
+            return { success: false, error: msg, status: 404 };
+        }
+
         return { success: false, error: 'Failed to submit attendance', status: response.status };
     } catch (error) {
         console.error('Submit attendance error:', error);

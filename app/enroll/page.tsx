@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { enrollFace, updateConsent } from '@/lib/api';
 
 type EnrollmentStep = 'consent' | 'camera' | 'preview' | 'submitting' | 'success' | 'error';
 
@@ -115,12 +116,30 @@ function EnrollPageContent() {
         setStep('submitting');
         setError('');
 
-        // TODO: Replace mock with real API call once backend POST /api/v1/users/me/face/enroll is implemented
-        // Real call: const base64Image = capturedImage.replace(/^data:image\/\w+;base64,/, '');
-        //            const result = await enrollFace(base64Image);
-        await new Promise(res => setTimeout(res, 1200));
-        setQualityScore(0.95);
-        setStep('success');
+        try {
+            // Persist camera consent before face enrollment to satisfy backend policy checks.
+            const consentResult = await updateConsent(true);
+            if (!consentResult.success) {
+                setError(consentResult.error || 'Unable to save camera consent.');
+                setStep('error');
+                return;
+            }
+
+            const base64Image = capturedImage.replace(/^data:image\/\w+;base64,/, '');
+            const result = await enrollFace(base64Image);
+            if (!result.success) {
+                setError(result.error || 'Face enrollment failed. Please try again.');
+                setStep('error');
+                return;
+            }
+
+            setQualityScore(result.data?.quality_score ?? 0.95);
+            setStep('success');
+        } catch (err) {
+            console.error('Face enrollment error:', err);
+            setError('Face enrollment failed. Please try again.');
+            setStep('error');
+        }
     };
 
     // Handle consent acceptance

@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import fpPromise from '@fingerprintjs/fingerprintjs';
 import { getMyDevices, login, registerDevice } from '@/lib/api';
@@ -233,6 +234,9 @@ export default function LoginPage() {
                 {/* Footer */}
                 <div className="login-footer">
                     <p>Student Check-in System</p>
+                    <p style={{ marginTop: '0.5rem' }}>
+                        New here? <Link href="/register" className="register-link">Register</Link>
+                    </p>
                 </div>
             </div>
         </main>
