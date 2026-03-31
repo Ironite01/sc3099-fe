@@ -466,6 +466,22 @@ export async function submitAttendance(payload: AttendancePayload): Promise<ApiR
         };
     }
 
+    if (!payload.session_id) {
+        return { success: false, error: 'Missing session ID. Please re-open the session QR link.', status: 400 };
+    }
+    if (!payload.device_fingerprint) {
+        return { success: false, error: 'Missing device fingerprint. Please refresh and try again.', status: 400 };
+    }
+    if (!payload.face_image && !payload.liveness_token) {
+        return { success: false, error: 'Face capture is missing. Please try scanning again.', status: 400 };
+    }
+    if (!Number.isFinite(payload.location?.latitude) || !Number.isFinite(payload.location?.longitude)) {
+        return { success: false, error: 'Location is invalid. Please allow precise location and retry.', status: 400 };
+    }
+    if (!payload.qr_code) {
+        return { success: false, error: 'Missing QR code payload. Please scan/open the latest session link again.', status: 400 };
+    }
+
     try {
         const response = await apiFetch('/api/v1/checkins', {
             method: 'POST',
@@ -490,7 +506,7 @@ export async function submitAttendance(payload: AttendancePayload): Promise<ApiR
         if (response.status === 400) {
             const errorData = await response.json().catch(() => ({}));
             const raw: string = errorData.message || errorData.detail || '';
-            let msg = 'Invalid attendance submission.';
+            let msg = raw || 'Invalid attendance submission.';
             if (/already checked in/i.test(raw)) msg = 'You have already checked into this session.';
             else if (/not enrolled|not in this course/i.test(raw)) msg = 'You are not enrolled in this course.';
             else if (/window closed/i.test(raw)) msg = 'The check-in window for this session has closed.';
@@ -501,7 +517,19 @@ export async function submitAttendance(payload: AttendancePayload): Promise<ApiR
             else if (/device.*(deactivated|inactive)/i.test(raw)) msg = 'Your device has been deactivated. Please contact your instructor.';
             else if (/device fingerprint.*required/i.test(raw)) msg = 'Device verification is required for this session.';
             else if (/device is not allowed/i.test(raw)) msg = 'This device is not trusted yet. Please use your bound device or contact instructor/admin.';
+            else if (/invalid qr code/i.test(raw)) msg = 'QR is invalid. Please generate a new QR/session link and try again.';
+            else if (/qr code expired/i.test(raw)) msg = 'QR has expired. Please get a fresh QR/session link.';
+            else if (/qr code is required/i.test(raw)) msg = 'QR is required for this check-in. Please scan/open the session link again.';
+            else if (/liveness challenge response is required/i.test(raw)) msg = 'Face/liveness image is missing. Please retake the face scan.';
+            else if (/unable to perform face verification/i.test(raw)) msg = 'Face profile is not enrolled. Please complete face enrollment first.';
+            else if (/session not found/i.test(raw)) msg = 'Session was not found. Please refresh and scan a valid session link.';
             return { success: false, error: msg, status: 400 };
+        }
+
+        if (response.status === 422) {
+            const errorData = await response.json().catch(() => ({}));
+            const detail = errorData?.detail || errorData?.message || 'Validation failed. Please check all required fields.';
+            return { success: false, error: String(detail), status: 422 };
         }
 
         if (response.status === 401) {

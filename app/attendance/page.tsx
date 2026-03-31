@@ -75,23 +75,20 @@ function AttendanceContent() {
                 });
                 if (!deviceRegistration.success) {
                     const msg = deviceRegistration.error || 'Device registration failed.';
+                    const devices = await getMyDevices();
+                    const hasBoundDevice = devices.success && (devices.data?.length || 0) > 0;
                     const isFingerprintConflict = /device fingerprint already registered/i.test(msg);
-                    if (isFingerprintConflict) {
-                        const devices = await getMyDevices();
-                        if (devices.success && (devices.data?.length || 0) > 0) {
-                            sessionStorage.removeItem(DEVICE_BIND_ERROR_KEY);
-                        } else {
-                            sessionStorage.setItem(DEVICE_BIND_ERROR_KEY, msg);
-                            setError(
-                                `${msg} Please unbind the old account from this device in My Devices, or use another browser/device before check-in.`
-                            );
-                            setStep('error');
-                            return;
-                        }
+
+                    if (hasBoundDevice) {
+                        // Backend may return generic DB errors for idempotent same-device re-registration.
+                        // If user already has a bound device, allow check-in flow to continue.
+                        sessionStorage.removeItem(DEVICE_BIND_ERROR_KEY);
                     } else {
                         sessionStorage.setItem(DEVICE_BIND_ERROR_KEY, msg);
                         setError(
-                            `${msg} Please unbind the old account from this device in My Devices, or use another browser/device before check-in.`
+                            isFingerprintConflict
+                                ? `${msg} Please unbind the old account from this device in My Devices, or use another browser/device before check-in.`
+                                : `${msg} Please bind a device in My Devices, then try again.`
                         );
                         setStep('error');
                         return;
