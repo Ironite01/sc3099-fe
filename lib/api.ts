@@ -24,6 +24,17 @@ function normalizeCourseList(payload: any): Course[] {
     return [];
 }
 
+function mapEnrollmentToCourse(enrollment: any): Course {
+    return {
+        id: String(enrollment?.course_id || ''),
+        code: String(enrollment?.course_code || ''),
+        name: String(enrollment?.course_name || ''),
+        semester: enrollment?.semester || '',
+        is_active: enrollment?.is_active !== false,
+        enrolled_at: enrollment?.enrolled_at,
+    } as Course;
+}
+
 /**
  * Fetch wrapper for API calls
  * @param path - API path (e.g., '/api/v1/auth/login')
@@ -284,6 +295,7 @@ export async function getMyCourses(): Promise<ApiResponse<Course[]>> {
     }
 
     try {
+        // Preferred legacy endpoint
         const response = await apiFetch('/api/v1/courses/enrolled');
 
         if (response.ok) {
@@ -291,11 +303,19 @@ export async function getMyCourses(): Promise<ApiResponse<Course[]>> {
             return { success: true, data: normalizeCourseList(data) };
         }
 
-        if (response.status === 401) {
+        // Hotfix fallback for backend main: endpoint moved to enrollments controller
+        const enrollmentsRes = await apiFetch('/api/v1/enrollments/my-enrollments');
+        if (enrollmentsRes.ok) {
+            const data = await enrollmentsRes.json();
+            const items = Array.isArray(data) ? data.map(mapEnrollmentToCourse) : [];
+            return { success: true, data: items };
+        }
+
+        if (response.status === 401 || enrollmentsRes.status === 401) {
             return { success: false, error: 'Please log in first', status: 401 };
         }
 
-        return { success: false, error: 'Failed to fetch courses', status: response.status };
+        return { success: false, error: 'Failed to fetch courses', status: response.status || enrollmentsRes.status };
     } catch (error) {
         console.error('Get courses error:', error);
         return { success: false, error: 'Unable to connect to server.' };
@@ -316,7 +336,30 @@ export async function getAvailableCourses(): Promise<ApiResponse<Course[]>> {
             return { success: true, data: normalizeCourseList(data) };
         }
 
-        return { success: false, error: 'Failed to fetch available courses', status: response.status };
+        // Hotfix fallback for backend main typo route: /api/v1/courses'
+        // We URL-encode the apostrophe so fetch path is valid.
+        const coursesRes = await apiFetch('/api/v1/courses%27?is_active=true&limit=200&offset=0');
+        if (coursesRes.ok) {
+            const allPayload = await coursesRes.json();
+            const allCourses = normalizeCourseList(allPayload);
+
+            // Exclude currently enrolled courses
+            const enrolledRes = await apiFetch('/api/v1/enrollments/my-enrollments');
+            if (enrolledRes.ok) {
+                const enrolled = await enrolledRes.json();
+                const enrolledIds = new Set(
+                    (Array.isArray(enrolled) ? enrolled : [])
+                        .map((e: any) => String(e?.course_id || ''))
+                        .filter(Boolean)
+                );
+                const available = allCourses.filter((c) => !enrolledIds.has(String(c.id)));
+                return { success: true, data: available };
+            }
+
+            return { success: true, data: allCourses };
+        }
+
+        return { success: false, error: 'Failed to fetch available courses', status: response.status || coursesRes.status };
     } catch (error) {
         console.error('Get available courses error:', error);
         return { success: false, error: 'Unable to connect to server.' };

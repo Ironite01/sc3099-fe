@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Calendar, LogOut } from 'lucide-react';
+import { Calendar, LogOut } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import CourseCard from '@/components/CourseCard';
 import { getMyCourses } from '@/lib/api';
@@ -77,25 +77,12 @@ export default function CoursesPage() {
                         <section className="courses-section">
                             <div className="section-header">
                                 <h2>My Enrolled Courses</h2>
-                                <button
-                                    className="text-button"
-                                    onClick={() => router.push('/courses/register')}
-                                >
-                                    <Plus size={18} />
-                                    Register Course
-                                </button>
                             </div>
 
                             {approvedCourses.length === 0 ? (
                                 <div className="empty-state">
                                     <Calendar size={48} />
-                                    <p>No approved courses yet</p>
-                                    <button
-                                        className="primary-button"
-                                        onClick={() => router.push('/courses/register')}
-                                    >
-                                        Register for a Course
-                                    </button>
+                                    <p>No enrolled courses yet. Please ask your instructor/admin to enroll you.</p>
                                 </div>
                             ) : (
                                 <div className="courses-grid">

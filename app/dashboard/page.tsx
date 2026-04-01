@@ -187,13 +187,6 @@ export default function DashboardPage() {
                                 <div className="dashboard-empty">
                                     <Clock size={32} />
                                     <p>{coursesError || 'No enrolled courses'}</p>
-                                    <button
-                                        className="secondary-button"
-                                        style={{ marginTop: '0.5rem' }}
-                                        onClick={() => router.push('/courses/register')}
-                                    >
-                                        Register for courses
-                                    </button>
                                 </div>
                             ) : (
                                 <div className="dashboard-courses">
