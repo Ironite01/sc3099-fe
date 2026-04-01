@@ -30,7 +30,7 @@ export default function CourseCard({
         <div className="course-card">
             <div className="course-card-content">
                 <div className="course-card-header">
-                    <span className="course-code">{course.code}</span>
+                    <span className="course-code">{(course as any).course_code}</span>
                     {showStatus && (
                         statusConfig && StatusIcon && (
                             <span className={`course-status ${statusConfig.className}`}>
@@ -41,16 +41,16 @@ export default function CourseCard({
                     )}
                 </div>
 
-                <h3 className="course-name">{course.name}</h3>
+                <h3 className="course-name">{(course as any).course_name}</h3>
 
                 <div className="course-details">
                     <div className="course-detail">
                         <User size={14} />
-                        <span>{course.instructor ?? course.semester ?? ''}</span>
+                        <span>{(course as any).instructor_name ?? course.semester ?? ''}</span>
                     </div>
                     <div className="course-detail">
                         <Clock size={14} />
-                        <span>{course.schedule ?? ''}</span>
+                        <span>{course.enrolled_at ? new Date(course.enrolled_at).toDateString() : ''}</span>
                     </div>
                 </div>
             </div>

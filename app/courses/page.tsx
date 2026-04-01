@@ -75,17 +75,6 @@ export default function CoursesPage() {
                 ) : (
                     <>
                         <section className="courses-section">
-                            <div className="section-header">
-                                <h2>My Enrolled Courses</h2>
-                                <button
-                                    className="text-button"
-                                    onClick={() => router.push('/courses/register')}
-                                >
-                                    <Plus size={18} />
-                                    Register Course
-                                </button>
-                            </div>
-
                             {approvedCourses.length === 0 ? (
                                 <div className="empty-state">
                                     <Calendar size={48} />

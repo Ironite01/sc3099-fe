@@ -40,13 +40,13 @@ export async function apiFetch(path: string, options: ApiFetchOptions = {}): Pro
             ...headers,
         },
     };
-    
+
     // Add Content-Type only if not already present and we have a body
     const headersRecord = headers as Record<string, string>;
     if (body !== undefined && !headersRecord?.['Content-Type']) {
         (config.headers as any)['Content-Type'] = 'application/json';
     }
-    
+
     // Handle body - if it's an object, stringify it
     if (body !== undefined) {
         config.body = typeof body === 'string' ? body : JSON.stringify(body);
@@ -284,7 +284,7 @@ export async function getMyCourses(): Promise<ApiResponse<Course[]>> {
     }
 
     try {
-        const response = await apiFetch('/api/v1/courses/enrolled');
+        const response = await apiFetch('/api/v1/enrollments/my-enrollments');
 
         if (response.ok) {
             const data = await response.json();
@@ -309,7 +309,7 @@ export async function getAvailableCourses(): Promise<ApiResponse<Course[]>> {
     }
 
     try {
-        const response = await apiFetch('/api/v1/courses/available');
+        const response = await apiFetch('/api/v1/courses');
 
         if (response.ok) {
             const data = await response.json();
@@ -370,34 +370,6 @@ export async function getMyCheckins(limit: number = 10): Promise<ApiResponse<Stu
         return { success: false, error: 'Failed to fetch your check-ins', status: response.status };
     } catch (error) {
         console.error('Get my check-ins error:', error);
-        return { success: false, error: 'Unable to connect to server.' };
-    }
-}
-
-export async function registerForCourse(courseId: string): Promise<ApiResponse<{ message: string }>> {
-    if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        return { success: true, data: { message: 'Registration submitted for approval' } };
-    }
-
-    try {
-        const response = await apiFetch('/api/v1/courses/register', {
-            method: 'POST',
-            body: { course_id: courseId },
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            return { success: true, data };
-        }
-
-        if (response.status === 409) {
-            return { success: false, error: 'Already registered for this course', status: 409 };
-        }
-
-        return { success: false, error: 'Failed to register for course', status: response.status };
-    } catch (error) {
-        console.error('Register course error:', error);
         return { success: false, error: 'Unable to connect to server.' };
     }
 }
@@ -688,8 +660,8 @@ export async function registerDevice(payload: {
             } else if (parsed.error) {
                 parsedMessage = parsed.error;
             }
-        } catch (e) {}
-        
+        } catch (e) { }
+
         return { success: false, error: parsedMessage, status: res.status };
     } catch (err) {
         console.error('[SAIV] registerDevice network error:', err);
@@ -724,10 +696,10 @@ export async function deleteDevice(deviceId: string): Promise<ApiResponse<void>>
         if (res.status === 204 || res.ok) {
             return { success: true };
         }
-        
+
         const errBody = await res.text().catch(() => '');
         let parsedMessage = `Failed to remove device (${res.status})`;
-        
+
         try {
             const parsed = JSON.parse(errBody);
             if (parsed.message) {
@@ -735,7 +707,7 @@ export async function deleteDevice(deviceId: string): Promise<ApiResponse<void>>
             } else if (parsed.error) {
                 parsedMessage = parsed.error;
             }
-        } catch (e) {}
+        } catch (e) { }
 
         return { success: false, error: parsedMessage, status: res.status };
     } catch {

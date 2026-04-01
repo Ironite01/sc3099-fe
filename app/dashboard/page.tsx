@@ -159,13 +159,6 @@ export default function DashboardPage() {
                                 <Smartphone size={18} />
                                 <span>My Devices</span>
                             </button>
-                            <button
-                                className="dashboard-quick-link"
-                                onClick={() => router.push('/courses')}
-                            >
-                                <BookOpen size={18} />
-                                <span>My Courses</span>
-                            </button>
                         </div>
 
                         {/* Enrolled Courses */}
@@ -199,8 +192,8 @@ export default function DashboardPage() {
                                 <div className="dashboard-courses">
                                     {courses.slice(0, 4).map(course => (
                                         <div key={course.id} className="dashboard-course-chip">
-                                            <span className="dashboard-course-code">{course.code}</span>
-                                            <span className="dashboard-course-name">{course.name}</span>
+                                            <span className="dashboard-course-code">{(course as any).course_code}</span>
+                                            <span className="dashboard-course-name">{(course as any).course_name}</span>
                                         </div>
                                     ))}
                                 </div>
