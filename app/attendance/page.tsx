@@ -10,7 +10,7 @@ import StatusResult from '@/components/StatusResult';
 import { useCamera } from '@/hooks/useCamera';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useLiveness } from '@/hooks/useLiveness';
-import { getActiveSessions, getCheckinChallenge, getMyDevices, getSessionById, submitAttendance, registerDevice } from '@/lib/api';
+import { getActiveSessions, getCheckinChallenge, getMyDevices, getMySessions, getSessionById, submitAttendance, registerDevice } from '@/lib/api';
 import type { Session, GeolocationCoords, AttendanceResult } from '@/lib/types';
 import fpPromise from '@fingerprintjs/fingerprintjs';
 
@@ -128,13 +128,21 @@ function AttendanceContent() {
                 }
                 sessionStorage.removeItem(DEVICE_BIND_ERROR_KEY);
 
-                const sessionResult = await getActiveSessions();
+                const [sessionResult, activeResult] = await Promise.all([
+                    getMySessions('active'),
+                    getActiveSessions(),
+                ]);
 
                 if (sessionResult.success && sessionResult.data) {
-                    setSessions(sessionResult.data);
+                    const myActiveSessions = sessionResult.data;
+                    setSessions(myActiveSessions);
 
                     if (preselectedSessionId) {
-                        const session = sessionResult.data.find(s => s.id === preselectedSessionId);
+                        // Preserve QR flow behavior using the public active list.
+                        const session = (activeResult.success && activeResult.data
+                            ? activeResult.data
+                            : myActiveSessions
+                        ).find(s => s.id === preselectedSessionId);
                         if (session) {
                             setSelectedSession(session);
                             setStep('consent');
@@ -393,8 +401,13 @@ function AttendanceContent() {
                 {step === 'select-session' && (
                     <div className="course-select-container">
                         <h2>Select a Session</h2>
-                        <p className="section-description">Choose the active session to check into</p>
+                        <p className="section-description">Choose an active session from your enrolled courses</p>
                         <div className="courses-list">
+                            {sessions.length === 0 && (
+                                <div className="dashboard-empty">
+                                    <p>No active sessions available for your enrolled courses right now.</p>
+                                </div>
+                            )}
                             {sessions.map(session => (
                                 <button
                                     key={session.id}

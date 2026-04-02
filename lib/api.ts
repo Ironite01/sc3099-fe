@@ -340,6 +340,27 @@ export async function getActiveSessions(): Promise<ApiResponse<Session[]>> {
     }
 }
 
+export async function getMySessions(status?: Session['status']): Promise<ApiResponse<Session[]>> {
+    try {
+        const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+        const response = await apiFetch(`/api/v1/sessions/my-sessions${qs}`);
+
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, data: Array.isArray(data) ? data : [] };
+        }
+
+        if (response.status === 401) {
+            return { success: false, error: 'Please log in first', status: 401 };
+        }
+
+        return { success: false, error: 'Failed to fetch your sessions', status: response.status };
+    } catch (error) {
+        console.error('Get my sessions error:', error);
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+
 export async function getMyCheckins(limit: number = 10): Promise<ApiResponse<StudentCheckin[]>> {
     try {
         const clampedLimit = Math.max(1, Math.min(limit, 200));

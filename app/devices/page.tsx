@@ -59,6 +59,9 @@ export default function MyDevicesPage() {
     const normalizedError = (error || '').trim().toLowerCase();
     const normalizedHint = (deviceBindHint || '').trim().toLowerCase();
     const showDeviceBindHint = Boolean(deviceBindHint) && normalizedHint !== normalizedError;
+    const deviceOwnershipConflict =
+        /bound to another account|belongs to another account|fingerprint already registered to another account/.test(normalizedHint) ||
+        /bound to another account|belongs to another account|fingerprint already registered to another account/.test(normalizedError);
 
     useEffect(() => {
         setDeviceBindHint(sessionStorage.getItem(DEVICE_BIND_ERROR_KEY));
@@ -168,7 +171,7 @@ export default function MyDevicesPage() {
                             className="secondary-button"
                             style={{ marginTop: '0.75rem' }}
                             onClick={handleBindCurrentDevice}
-                            disabled={binding}
+                            disabled={binding || deviceOwnershipConflict}
                         >
                             {binding ? 'Binding...' : 'Bind This Device'}
                         </button>

@@ -165,6 +165,13 @@ export default function DashboardPage() {
                                 <Smartphone size={18} />
                                 <span>My Devices</span>
                             </button>
+                            <button
+                                className="dashboard-quick-link"
+                                onClick={() => router.push('/attendance')}
+                            >
+                                <Clock size={18} />
+                                <span>Active Sessions</span>
+                            </button>
                         </div>
 
                         {/* Enrolled Courses */}
