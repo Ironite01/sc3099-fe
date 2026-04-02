@@ -55,6 +55,11 @@ export default function DashboardPage() {
                 return;
             }
 
+            if (userResult.data?.face_enrolled === false) {
+                router.replace('/enroll?required=true');
+                return;
+            }
+
             setUser(userResult.data ?? null);
             if (coursesResult.success && coursesResult.data) {
                 // Backend /courses/enrolled returns enrolled rows without a

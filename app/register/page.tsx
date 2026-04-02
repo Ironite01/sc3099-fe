@@ -168,7 +168,7 @@ export default function RegisterPage() {
                             'Device registration failed. Check-in may be blocked until this device is bound.'
                         );
                     }
-                    router.push('/enroll?fromRegister=true');
+                    router.push('/enroll?fromRegister=true&required=true');
                 } else {
                     // Registration succeeded but auto-login failed – fall back to login page
                     router.push('/login?registered=true');

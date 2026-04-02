@@ -200,7 +200,7 @@ function AttendanceContent() {
 
     useEffect(() => {
         if (liveness.isComplete && liveness.livenessToken && step === 'liveness') {
-            const livenessFrame = camera.capturePhoto();
+            const livenessFrame = livenessImage || camera.capturePhoto();
             if (!livenessFrame) {
                 setError('Failed to capture liveness image');
                 setStep('error');
@@ -219,7 +219,20 @@ function AttendanceContent() {
             }, 1000);
             return () => clearTimeout(timer);
         }
-    }, [liveness.isComplete, liveness.livenessToken, step, camera, capturedImage]);
+    }, [liveness.isComplete, liveness.livenessToken, step, camera, capturedImage, livenessImage]);
+
+    // Capture liveness frame as soon as challenge turns success, while the user
+    // is still holding the required pose.
+    useEffect(() => {
+        if (step !== 'liveness') return;
+        if (liveness.status !== 'success') return;
+        if (livenessImage) return;
+
+        const frame = camera.capturePhoto();
+        if (frame) {
+            setLivenessImage(frame);
+        }
+    }, [step, liveness.status, livenessImage, camera]);
 
     useEffect(() => {
         if ((step === 'baseline' || step === 'liveness') && camera.isActive && camera.videoRef.current) {

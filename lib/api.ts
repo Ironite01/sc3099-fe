@@ -72,6 +72,7 @@ export async function login(email: string, password: string): Promise<{
             email: string;
             full_name: string;
             role: string;
+            face_enrolled?: boolean;
         };
     };
     error?: string;

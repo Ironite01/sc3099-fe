@@ -112,6 +112,11 @@ export default function LoginPage() {
                 if (result.data?.user) {
                     sessionStorage.setItem('saiv_user', JSON.stringify(result.data.user));
                 }
+                if (result.data?.user?.face_enrolled === false) {
+                    router.push('/enroll?required=true');
+                    return;
+                }
+
                 // Redirect to dashboard on successful login
                 router.push('/dashboard');
             } else {

@@ -10,6 +10,7 @@ function EnrollPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const fromRegister = searchParams.get('fromRegister') === 'true';
+    const enrollmentRequired = searchParams.get('required') === 'true';
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
@@ -196,6 +197,11 @@ function EnrollPageContent() {
                                 <path d="M21 15l-5-5L5 21" />
                             </svg>
                             <h2>Camera Permission Required</h2>
+                            {enrollmentRequired && (
+                                <p className="error-message" style={{ marginBottom: '0.75rem' }}>
+                                    Face enrollment is required before you can continue.
+                                </p>
+                            )}
                             <p>
                                 To enroll your face, we need access to your camera.
                                 Your photo will be securely processed and only a
@@ -211,11 +217,6 @@ function EnrollPageContent() {
                         <button className="primary-button" onClick={acceptConsent}>
                             Allow Camera Access
                         </button>
-                        {fromRegister && (
-                            <button className="skip-button" onClick={() => router.push('/')}>
-                                Skip for now
-                            </button>
-                        )}
                     </div>
                 )}
 
