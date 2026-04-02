@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { FlipHorizontal, X, QrCode } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import jsQR from 'jsqr';
-import { USE_MOCK_DATA, MOCK_ACTIVE_SESSIONS } from '@/lib/mockData';
 import { getActiveSessions } from '@/lib/api';
 
 type ScanStatus = 'scanning' | 'found' | 'error' | 'invalid';
@@ -274,24 +273,6 @@ export default function ScanPage() {
                     </>
                 )}
 
-                {/* Mock mode test shortcut — only visible in dev/mock mode */}
-                {USE_MOCK_DATA && (
-                    <div className="qr-mock-bar">
-                        <span className="qr-mock-label">Test Mode</span>
-                        {MOCK_ACTIVE_SESSIONS.map(s => (
-                            <button
-                                key={s.id}
-                                className="qr-mock-btn"
-                                onClick={() => {
-                                    stopCamera();
-                                    router.push(`/attendance?sessionId=${encodeURIComponent(s.id)}`);
-                                }}
-                            >
-                                {s.course_code}
-                            </button>
-                        ))}
-                    </div>
-                )}
             </div>
 
             {/* Hidden canvas for jsQR processing */}

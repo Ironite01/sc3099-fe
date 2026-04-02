@@ -84,8 +84,6 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
         const ctx = canvas.getContext('2d');
         if (!ctx) return null;
 
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
         ctx.drawImage(video, 0, 0);
 
         return canvas.toDataURL('image/jpeg', 0.9);

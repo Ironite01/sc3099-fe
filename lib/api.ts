@@ -7,8 +7,7 @@
  * - Sets JSON headers by default
  */
 
-import type { Session, Course, AttendancePayload, AttendanceResult, ApiResponse, RegisterPayload, User, StudentCheckin, DeviceRecord } from './types';
-import { MOCK_ENROLLED_COURSES, MOCK_AVAILABLE_COURSES, MOCK_ACTIVE_SESSIONS, MOCK_USER, USE_MOCK_DATA } from './mockData';
+import type { Session, Course, AttendancePayload, AttendanceResult, ApiResponse, RegisterPayload, User, StudentCheckin, DeviceRecord, CheckinChallenge } from './types';
 
 // Use ?? so an intentionally empty NEXT_PUBLIC_BACKEND_URL stays '' (relative path → Next.js proxy).
 // Only falls back to localhost:8000 when the variable is completely absent (undefined).
@@ -82,7 +81,10 @@ export async function login(email: string, password: string): Promise<{
         // Use same-origin request through Next.js rewrite proxy (/api/* → backend)
         const response = await fetch('/api/v1/auth/login', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-saiv-cookie-auth': '1',
+            },
             credentials: 'include',
             body: JSON.stringify({ email, password }),
         });
@@ -134,14 +136,10 @@ export async function register(payload: RegisterPayload): Promise<{
             return { success: true, data };
         }
 
-        if (response.status === 409) {
-            return { success: false, error: 'An account with this email already exists', status: 409 };
-        }
-
         if (response.status === 400) {
-            const errorData = await response.json().catch(() => ({}));
+            const errorData = await response.json().catch(() => ({} as any));
             // Map raw Fastify/AJV schema errors to clean user-facing messages
-            const raw: string = String(errorData.message || '').toLowerCase();
+            const raw: string = String(errorData?.detail || errorData?.message || '').toLowerCase();
             let clean = 'Please check your details and try again.';
             if (/already\s*registered|already\s*exists|duplicate/.test(raw)) clean = 'An account with this email already exists';
             else if (/full_name/.test(raw)) clean = 'Please enter your full name (at least 4 characters).';
@@ -149,6 +147,26 @@ export async function register(payload: RegisterPayload): Promise<{
             else if (/password/.test(raw)) clean = 'Password does not meet the requirements.';
             else if (/required property 'role'|role/.test(raw)) clean = 'Registration role is missing. Please refresh and try again.';
             return { success: false, error: clean, status: 400 };
+        }
+
+        if (response.status === 409) {
+            return { success: false, error: 'An account with this email already exists', status: 409 };
+        }
+
+        if (response.status === 422) {
+            const errorData = await response.json().catch(() => ({} as any));
+            const detail = errorData?.detail;
+            if (Array.isArray(detail) && detail.length > 0) {
+                const msg = String(detail[0]?.msg || 'Invalid input');
+                if (/email/i.test(msg)) return { success: false, error: 'Please enter a valid email address.', status: 422 };
+                if (/password/i.test(msg)) return { success: false, error: 'Password does not meet the requirements.', status: 422 };
+                if (/full_name/i.test(msg)) return { success: false, error: 'Please enter your full name (at least 4 characters).', status: 422 };
+            }
+            return { success: false, error: 'Please check your details and try again.', status: 422 };
+        }
+
+        if (response.status === 429) {
+            return { success: false, error: 'Too many registration attempts. Please wait and try again.', status: 429 };
         }
 
         return { success: false, error: 'Registration failed. Please try again.', status: response.status };
@@ -242,18 +260,6 @@ export async function updateConsent(
 }
 
 export async function getMe(): Promise<ApiResponse<User>> {
-    if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        // Use real login data if available (stored during login)
-        try {
-            const cached = sessionStorage.getItem('saiv_user');
-            if (cached) {
-                const parsed = JSON.parse(cached);
-                return { success: true, data: { ...MOCK_USER, ...parsed } };
-            }
-        } catch { /* ignore */ }
-        return { success: true, data: MOCK_USER };
-    }
     try {
         const response = await apiFetch('/api/v1/users/me');
         if (response.ok) {
@@ -278,11 +284,6 @@ export async function logout(): Promise<void> {
 }
 
 export async function getMyCourses(): Promise<ApiResponse<Course[]>> {
-    if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return { success: true, data: MOCK_ENROLLED_COURSES };
-    }
-
     try {
         const response = await apiFetch('/api/v1/enrollments/my-enrollments');
 
@@ -303,11 +304,6 @@ export async function getMyCourses(): Promise<ApiResponse<Course[]>> {
 }
 
 export async function getAvailableCourses(): Promise<ApiResponse<Course[]>> {
-    if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return { success: true, data: MOCK_AVAILABLE_COURSES };
-    }
-
     try {
         const response = await apiFetch('/api/v1/courses');
 
@@ -324,11 +320,6 @@ export async function getAvailableCourses(): Promise<ApiResponse<Course[]>> {
 }
 
 export async function getActiveSessions(): Promise<ApiResponse<Session[]>> {
-    if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return { success: true, data: MOCK_ACTIVE_SESSIONS };
-    }
-
     try {
         const response = await apiFetch('/api/v1/sessions/active');
 
@@ -349,11 +340,6 @@ export async function getActiveSessions(): Promise<ApiResponse<Session[]>> {
 }
 
 export async function getMyCheckins(limit: number = 10): Promise<ApiResponse<StudentCheckin[]>> {
-    if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        return { success: true, data: [] };
-    }
-
     try {
         const clampedLimit = Math.max(1, Math.min(limit, 200));
         const response = await apiFetch(`/api/v1/checkins/my-checkins?limit=${clampedLimit}`);
@@ -374,70 +360,7 @@ export async function getMyCheckins(limit: number = 10): Promise<ApiResponse<Stu
     }
 }
 
-/** Haversine distance in metres between two lat/lng points */
-function haversineMetres(lat1: number, lng1: number, lat2: number, lng2: number): number {
-    const R = 6_371_000;
-    const toRad = (d: number) => (d * Math.PI) / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLng = toRad(lng2 - lng1);
-    const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
 export async function submitAttendance(payload: AttendancePayload): Promise<ApiResponse<AttendanceResult>> {
-    if (USE_MOCK_DATA) {
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // Look up the session so we can simulate real geofencing
-        const session = MOCK_ACTIVE_SESSIONS.find(s => s.id === payload.session_id);
-
-        // Geofencing check (mirrors backend Haversine logic)
-        if (
-            session?.venue_latitude != null &&
-            session?.venue_longitude != null &&
-            session?.geofence_radius_meters != null
-        ) {
-            const distance = haversineMetres(
-                payload.location.latitude,
-                payload.location.longitude,
-                session.venue_latitude,
-                session.venue_longitude,
-            );
-            if (distance > session.geofence_radius_meters) {
-                return {
-                    success: false,
-                    error: 'You are outside the permitted location for this session.',
-                    status: 400,
-                };
-            }
-        }
-
-        return {
-            success: true,
-            data: {
-                id: 'mock-checkin-' + Date.now(),
-                session_id: payload.session_id,
-                student_id: 'mock-student',
-                status: 'approved' as const,
-                checked_in_at: new Date().toISOString(),
-                latitude: payload.location.latitude,
-                longitude: payload.location.longitude,
-                distance_from_venue_meters: session?.venue_latitude != null
-                    ? Math.round(haversineMetres(
-                        payload.location.latitude, payload.location.longitude,
-                        session.venue_latitude!, session.venue_longitude!,
-                    ))
-                    : 0,
-                liveness_passed: true,
-                liveness_score: 0.95,
-                risk_score: 0.05,
-                risk_factors: [],
-            }
-        };
-    }
-
     if (!payload.session_id) {
         return { success: false, error: 'Missing session ID. Please re-open the session QR link.', status: 400 };
     }
@@ -451,6 +374,11 @@ export async function submitAttendance(payload: AttendancePayload): Promise<ApiR
         return { success: false, error: 'Location is invalid. Please allow precise location and retry.', status: 400 };
     }
     try {
+        const includeLiveness =
+            !!payload.liveness_challenge_token ||
+            !!payload.liveness_image ||
+            (payload.liveness_challenge_type && payload.liveness_challenge_type !== 'passive');
+
         const response = await apiFetch('/api/v1/checkins', {
             method: 'POST',
             body: {
@@ -459,10 +387,16 @@ export async function submitAttendance(payload: AttendancePayload): Promise<ApiR
                 longitude: payload.location.longitude,
                 location_accuracy_meters: payload.location.accuracy || 10,
                 device_fingerprint: payload.device_fingerprint,
-                // Backend ML check-in flow expects base64 image challenge response.
-                // Use captured face image as primary source; keep token as fallback.
-                liveness_challenge_response: payload.face_image || payload.liveness_token,
-                liveness_challenge_type: payload.liveness_challenge_type || 'passive',
+                // Explicit verification image for face-match flow.
+                face_verification_image: payload.face_image || '',
+                ...(includeLiveness
+                    ? {
+                        // Use dedicated liveness image when available; fallback keeps backward compatibility.
+                        liveness_challenge_response: payload.liveness_image || payload.face_image || payload.liveness_token,
+                        liveness_challenge_type: payload.liveness_challenge_type || 'passive',
+                        liveness_challenge_token: payload.liveness_challenge_token || '',
+                    }
+                    : {}),
                 qr_code: payload.qr_code || '',
             },
         });
@@ -524,6 +458,59 @@ export async function submitAttendance(payload: AttendancePayload): Promise<ApiR
         return { success: false, error: 'Failed to submit attendance', status: response.status };
     } catch (error) {
         console.error('Submit attendance error:', error);
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+
+export async function getSessionById(sessionId: string): Promise<ApiResponse<Session>> {
+    if (!sessionId) {
+        return { success: false, error: 'Missing session ID', status: 400 };
+    }
+
+    try {
+        const response = await apiFetch(`/api/v1/sessions/${sessionId}`);
+
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, data };
+        }
+
+        if (response.status === 401) {
+            return { success: false, error: 'Please log in first', status: 401 };
+        }
+
+        if (response.status === 404) {
+            return { success: false, error: 'Session not found', status: 404 };
+        }
+
+        return { success: false, error: 'Failed to fetch session details', status: response.status };
+    } catch (error) {
+        console.error('Get session by ID error:', error);
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+
+export async function getCheckinChallenge(sessionId: string): Promise<ApiResponse<CheckinChallenge>> {
+    if (!sessionId) {
+        return { success: false, error: 'Missing session ID', status: 400 };
+    }
+
+    try {
+        const response = await apiFetch('/api/v1/checkins/challenge', {
+            method: 'POST',
+            body: { session_id: sessionId },
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, data };
+        }
+
+        const errorData = await response.json().catch(() => ({}));
+        const msg = errorData.message || errorData.detail || 'Failed to get liveness challenge';
+        return { success: false, error: msg, status: response.status };
+    } catch (error) {
+        console.error('Get checkin challenge error:', error);
         return { success: false, error: 'Unable to connect to server.' };
     }
 }
@@ -621,22 +608,6 @@ export async function registerDevice(payload: {
 
     const finalPayload = { ...payload, device_name: finalDeviceName, public_key: publicKey };
 
-    if (USE_MOCK_DATA) {
-        return {
-            success: true,
-            data: {
-                id: 'mock-device-id',
-                device_name: finalDeviceName,
-                platform: finalPayload.platform ?? 'web',
-                is_trusted: false,
-                trust_score: 'low',
-                is_active: true,
-                first_seen_at: new Date().toISOString(),
-                last_seen_at: new Date().toISOString(),
-                total_checkins: 0,
-            },
-        };
-    }
     try {
         const headers: Record<string, string> = {};
         if (accessToken) {
@@ -652,15 +623,24 @@ export async function registerDevice(payload: {
             return { success: true, data };
         }
         const errBody = await res.text().catch(() => '');
-        let parsedMessage = `Device registration failed (${res.status}): ${errBody}`;
+        let parsedMessage = `Device registration failed (${res.status}).`;
         try {
             const parsed = JSON.parse(errBody);
-            if (parsed.message) {
-                parsedMessage = parsed.message;
+            if (parsed.detail) {
+                parsedMessage = String(parsed.detail);
+            } else if (parsed.message) {
+                parsedMessage = String(parsed.message);
             } else if (parsed.error) {
-                parsedMessage = parsed.error;
+                parsedMessage = String(parsed.error);
             }
-        } catch (e) { }
+        } catch (_e) { }
+
+        const lower = parsedMessage.toLowerCase();
+        if (lower.includes('device fingerprint already registered to another account')) {
+            parsedMessage = 'This browser/device is currently bound to another account. Use that account to remove it first, or use another browser/device.';
+        } else if (res.status === 409) {
+            parsedMessage = 'This browser/device is already linked to another account.';
+        }
 
         return { success: false, error: parsedMessage, status: res.status };
     } catch (err) {
@@ -671,9 +651,6 @@ export async function registerDevice(payload: {
 
 /** Fetch the current student's registered devices. */
 export async function getMyDevices(): Promise<ApiResponse<DeviceRecord[]>> {
-    if (USE_MOCK_DATA) {
-        return { success: true, data: [] };
-    }
     try {
         const res = await apiFetch('/api/v1/devices/my-devices');
         if (res.ok) {
@@ -688,9 +665,6 @@ export async function getMyDevices(): Promise<ApiResponse<DeviceRecord[]>> {
 
 /** Remove a registered device by ID. */
 export async function deleteDevice(deviceId: string): Promise<ApiResponse<void>> {
-    if (USE_MOCK_DATA) {
-        return { success: true };
-    }
     try {
         const res = await apiFetch(`/api/v1/devices/${deviceId}`, { method: 'DELETE' });
         if (res.status === 204 || res.ok) {

@@ -90,7 +90,7 @@ export default function DashboardPage() {
         return 'Good evening';
     };
 
-    const firstName = user?.full_name?.split(' ')[0] ?? 'Student';
+    const displayName = user?.full_name?.trim() || 'Student';
 
     return (
         <main className="page-container">
@@ -126,13 +126,14 @@ export default function DashboardPage() {
                             </div>
                             <div>
                                 <p className="dashboard-greeting-sub">{getGreeting()},</p>
-                                <h2 className="dashboard-greeting-name">{firstName}</h2>
+                                <h2 className="dashboard-greeting-name">{displayName}</h2>
                             </div>
                         </div>
 
                         {deviceBindError && (
                             <div className="error-message" style={{ marginBottom: '1rem' }}>
-                                {deviceBindError} Open My Devices to rebind this browser/device before check-in.
+                                {deviceBindError}
+                                {!/another account/i.test(deviceBindError) ? ' Open My Devices to rebind this browser/device before check-in.' : ''}
                             </div>
                         )}
 
@@ -180,13 +181,6 @@ export default function DashboardPage() {
                                 <div className="dashboard-empty">
                                     <Clock size={32} />
                                     <p>{coursesError || 'No enrolled courses'}</p>
-                                    <button
-                                        className="secondary-button"
-                                        style={{ marginTop: '0.5rem' }}
-                                        onClick={() => router.push('/courses/register')}
-                                    >
-                                        Register for courses
-                                    </button>
                                 </div>
                             ) : (
                                 <div className="dashboard-courses">

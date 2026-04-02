@@ -25,21 +25,30 @@ interface UseLivenessReturn {
     livenessToken: string | null;
     detectionProgress: number;
     status: LivenessStatus;
-    startChallenge: () => void;
+    startChallenge: (forcedTypes?: ChallengeType[]) => void;
     completeCurrentChallenge: () => void;
     reset: () => void;
 }
 
 const CHALLENGE_CONFIGS: Record<ChallengeType, string> = {
-    blink: 'Blink your eyes',
-    turn_left: 'Turn your head left',
-    turn_right: 'Turn your head right',
-    smile: 'Smile',
-    nod: 'Nod your head',
+    blink: 'Blink your eyes and hold steady',
+    turn_left: 'Turn your head left and hold for 2 seconds',
+    turn_right: 'Turn your head right and hold for 2 seconds',
+    smile: 'Smile and hold steady',
+    look_up: 'Look up and hold for 2 seconds',
+    look_down: 'Look down and hold for 2 seconds',
 };
 
-function generateChallenges(count: number, duration: number): LivenessChallenge[] {
-    const types: ChallengeType[] = ['blink', 'turn_left', 'turn_right', 'smile', 'nod'];
+function generateChallenges(count: number, duration: number, forcedTypes?: ChallengeType[]): LivenessChallenge[] {
+    if (forcedTypes && forcedTypes.length > 0) {
+        return forcedTypes.map((type) => ({
+            type,
+            instruction: CHALLENGE_CONFIGS[type],
+            duration,
+        }));
+    }
+
+    const types: ChallengeType[] = ['blink', 'turn_left', 'turn_right', 'smile', 'look_up', 'look_down'];
     const shuffled = [...types].sort(() => Math.random() - 0.5);
 
     return shuffled.slice(0, count).map(type => ({
@@ -108,8 +117,8 @@ export function useLiveness(options: UseLivenessOptions = {}): UseLivenessReturn
         }
     }, []);
 
-    const startChallenge = useCallback(() => {
-        const newChallenges = generateChallenges(challengeCount, 8000); // Increased duration for auto-detect
+    const startChallenge = useCallback((forcedTypes?: ChallengeType[]) => {
+        const newChallenges = generateChallenges(challengeCount, 8000, forcedTypes); // Increased duration for auto-detect
         setChallenges(newChallenges);
         setChallengeIndex(0);
         setTimeRemaining(8000);
@@ -184,8 +193,8 @@ export function useLiveness(options: UseLivenessOptions = {}): UseLivenessReturn
         // Start detection
         setStatus('detecting');
 
-        // Random detection time between 1.5s and 3s
-        const detectionTime = 1500 + Math.random() * 1500;
+        // Use a consistent hold duration so users know how long to keep the pose.
+        const detectionTime = 2200;
         const step = 50;
         const totalSteps = detectionTime / step;
         let currentStep = 0;

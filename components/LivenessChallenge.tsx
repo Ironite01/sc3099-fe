@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Eye, MoveLeft, MoveRight, Smile, ArrowDown } from 'lucide-react';
+import { Eye, MoveLeft, MoveRight, Smile, ArrowUp, ArrowDown } from 'lucide-react';
 import type { LivenessChallenge as LivenessChallengeType } from '@/lib/types';
 
 interface LivenessChallengeProps {
@@ -17,7 +17,8 @@ const CHALLENGE_ICONS: Record<LivenessChallengeType['type'], React.ReactNode> = 
     turn_left: <MoveLeft size={20} />,
     turn_right: <MoveRight size={20} />,
     smile: <Smile size={20} />,
-    nod: <ArrowDown size={20} />,
+    look_up: <ArrowUp size={20} />,
+    look_down: <ArrowDown size={20} />,
 };
 
 export default function LivenessChallenge({
@@ -50,6 +51,9 @@ export default function LivenessChallenge({
                 <span className="liveness-icon">{CHALLENGE_ICONS[challenge.type]}</span>
                 <span className="liveness-instruction">{challenge.instruction}</span>
             </div>
+            <p className="loading-subtext" style={{ marginTop: '0.35rem' }}>
+                Keep your head still until the verifier confirms.
+            </p>
             {/* Hidden skip button for development/fallback */}
             <button
                 className="liveness-skip-button"

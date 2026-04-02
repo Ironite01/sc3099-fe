@@ -65,19 +65,22 @@ export default function LoginPage() {
                 // Pass the access token explicitly because the httpOnly cookie
                 // from the login response may not be stored yet (Next.js proxy).
                 try {
-                    const fp = await fpPromise.load();
-                    const fpResult = await fp.get();
-                    const devResult = await registerDevice({
-                        device_fingerprint: fpResult.visitorId,
-                        device_name: navigator?.userAgent ?? 'Browser',
-                        platform: 'web',
-                    }, result.data?.access_token);
+                    const devResult = await (async () => {
+                        const fp = await fpPromise.load();
+                        const fpResult = await fp.get();
+                        return registerDevice({
+                            device_fingerprint: fpResult.visitorId,
+                            device_name: navigator?.userAgent ?? 'Browser',
+                            platform: 'web',
+                        }, result.data?.access_token);
+                    })();
 
                     // Do not block login on device registration failure.
                     // Device-binding is enforced during check-in based on course settings.
                     if (!devResult.success) {
                         console.warn('[SAIV] Device registration after login returned error:', devResult.error);
-                        const isFingerprintConflict = /device fingerprint already registered/i.test(devResult.error || '');
+                        const bindError = (devResult.error || '').toLowerCase();
+                        const isFingerprintConflict = devResult.status === 409 || /another account|fingerprint already registered/i.test(bindError);
                         if (isFingerprintConflict) {
                             const devices = await getMyDevices();
                             if (devices.success && (devices.data?.length || 0) > 0) {
@@ -105,7 +108,7 @@ export default function LoginPage() {
                     );
                 }
 
-                // Cache user info so dashboard can read the real name even in mock mode
+                // Cache user info so dashboard can read the latest display name.
                 if (result.data?.user) {
                     sessionStorage.setItem('saiv_user', JSON.stringify(result.data.user));
                 }

@@ -25,7 +25,7 @@ export interface Course {
     venue_longitude?: number | null;
     geofence_radius_meters?: number | null;
     enrolled_at?: string;
-    // Mock / legacy-only fields (not returned by real API)
+    // Optional UI fields for compatibility with older payload shapes.
     instructor?: string;
     schedule?: string;
     status?: 'pending' | 'approved' | 'rejected';
@@ -53,11 +53,20 @@ export interface Session {
 export interface AttendancePayload {
     session_id: string;
     face_image: string;
+    liveness_image?: string;
     location: GeolocationCoords;
     liveness_token: string;
-    liveness_challenge_type?: 'passive' | 'blink' | 'head_turn';
+    liveness_challenge_type?: 'passive' | 'blink' | 'head_turn' | 'head_left' | 'head_right' | 'head_up' | 'head_down';
+    liveness_challenge_token?: string;
     device_fingerprint: string;
     qr_code?: string;
+}
+
+export interface CheckinChallenge {
+    challenge_token: string;
+    challenge_type: 'blink' | 'head_left' | 'head_right' | 'head_up' | 'head_down' | 'head_turn' | 'passive';
+    instruction: string;
+    expires_in_seconds: number;
 }
 
 export interface GeolocationCoords {
@@ -96,7 +105,7 @@ export interface StudentCheckin {
 }
 
 export interface LivenessChallenge {
-    type: 'blink' | 'turn_left' | 'turn_right' | 'smile' | 'nod';
+    type: 'blink' | 'turn_left' | 'turn_right' | 'smile' | 'look_up' | 'look_down';
     instruction: string;
     duration: number;
 }

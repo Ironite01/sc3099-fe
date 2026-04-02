@@ -129,16 +129,19 @@ export default function RegisterPage() {
                     // Pass the access token explicitly because the httpOnly cookie
                     // from the login response may not be stored yet (Next.js proxy).
                     try {
-                        const fp = await fpPromise.load();
-                        const fpResult = await fp.get();
-                        const devResult = await registerDevice({
-                            device_fingerprint: fpResult.visitorId,
-                            device_name: navigator?.userAgent ?? 'Browser',
-                            platform: 'web',
-                        }, loginResult.data?.access_token);
+                        const devResult = await (async () => {
+                            const fp = await fpPromise.load();
+                            const fpResult = await fp.get();
+                            return registerDevice({
+                                device_fingerprint: fpResult.visitorId,
+                                device_name: navigator?.userAgent ?? 'Browser',
+                                platform: 'web',
+                            }, loginResult.data?.access_token);
+                        })();
                         if (!devResult.success) {
                             console.warn('[SAIV] Device registration after register returned error:', devResult.error);
-                            const isFingerprintConflict = /device fingerprint already registered/i.test(devResult.error || '');
+                            const bindError = (devResult.error || '').toLowerCase();
+                            const isFingerprintConflict = devResult.status === 409 || /another account|fingerprint already registered/i.test(bindError);
                             if (isFingerprintConflict) {
                                 const devices = await getMyDevices();
                                 if (devices.success && (devices.data?.length || 0) > 0) {

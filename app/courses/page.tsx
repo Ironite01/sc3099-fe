@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Calendar, LogOut } from 'lucide-react';
+import { Calendar, LogOut } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import CourseCard from '@/components/CourseCard';
 import { getMyCourses } from '@/lib/api';
@@ -30,9 +30,7 @@ export default function CoursesPage() {
         fetchCourses();
     }, []);
 
-    // Real backend doesn't return a status field on enrolled courses — every
-    // course in the list is already enrolled/active.  Only apply the filter
-    // when mock data is used (status will be set).
+    // Backend usually returns enrolled/active courses; keep status guard for compatibility.
     const approvedCourses = courses.filter(c => !c.status || c.status === 'approved');
     const pendingCourses = courses.filter(c => c.status === 'pending');
 
@@ -79,12 +77,6 @@ export default function CoursesPage() {
                                 <div className="empty-state">
                                     <Calendar size={48} />
                                     <p>No approved courses yet</p>
-                                    <button
-                                        className="primary-button"
-                                        onClick={() => router.push('/courses/register')}
-                                    >
-                                        Register for a Course
-                                    </button>
                                 </div>
                             ) : (
                                 <div className="courses-grid">

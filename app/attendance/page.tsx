@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, Suspense, useCallback, useRef } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Camera, MapPin, Check } from 'lucide-react';
+import { Camera, Check } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import ConsentModal from '@/components/ConsentModal';
 import LivenessChallengeComponent from '@/components/LivenessChallenge';
@@ -10,7 +10,7 @@ import StatusResult from '@/components/StatusResult';
 import { useCamera } from '@/hooks/useCamera';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useLiveness } from '@/hooks/useLiveness';
-import { getActiveSessions, getMyDevices, submitAttendance, registerDevice } from '@/lib/api';
+import { getActiveSessions, getCheckinChallenge, getMyDevices, getSessionById, submitAttendance, registerDevice } from '@/lib/api';
 import type { Session, GeolocationCoords, AttendanceResult } from '@/lib/types';
 import fpPromise from '@fingerprintjs/fingerprintjs';
 
@@ -20,13 +20,48 @@ type AttendanceStep =
     | 'loading'
     | 'select-session'
     | 'consent'
+    | 'baseline'
     | 'liveness'
-    | 'capture'
     | 'submitting'
     | 'success'
     | 'error';
 
 type ConsentStep = 'intro' | 'location' | 'camera' | 'ready';
+
+function mapChallengeTypeToBackend(type?: 'blink' | 'turn_left' | 'turn_right' | 'smile' | 'look_up' | 'look_down') {
+    switch (type) {
+        case 'blink':
+            return 'blink' as const;
+        case 'turn_left':
+            return 'head_left' as const;
+        case 'turn_right':
+            return 'head_right' as const;
+        case 'look_up':
+            return 'head_up' as const;
+        case 'look_down':
+            return 'head_down' as const;
+        case 'smile':
+        default:
+            return 'passive' as const;
+    }
+}
+
+function mapBackendChallengeToFrontend(type?: string): 'blink' | 'turn_left' | 'turn_right' | 'smile' | 'look_up' | 'look_down' {
+    switch (type) {
+        case 'blink':
+            return 'blink';
+        case 'head_left':
+            return 'turn_left';
+        case 'head_right':
+            return 'turn_right';
+        case 'head_up':
+            return 'look_up';
+        case 'head_down':
+            return 'look_down';
+        default:
+            return 'smile';
+    }
+}
 
 function AttendanceContent() {
     const searchParams = useSearchParams();
@@ -38,19 +73,21 @@ function AttendanceContent() {
     const [sessions, setSessions] = useState<Session[]>([]);
     const [selectedSession, setSelectedSession] = useState<Session | null>(null);
     const [location, setLocation] = useState<GeolocationCoords | null>(null);
+    const [livenessImage, setLivenessImage] = useState<string | null>(null);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
+    const [issuedChallenge, setIssuedChallenge] = useState<{ token: string; type: string; instruction: string } | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [locationGranted, setLocationGranted] = useState(false);
     const [cameraGranted, setCameraGranted] = useState(false);
     const [deviceFingerprint, setDeviceFingerprint] = useState<string | null>(null);
     const [checkinResult, setCheckinResult] = useState<AttendanceResult | null>(null);
+    const [baselineAutoCaptureStarted, setBaselineAutoCaptureStarted] = useState(false);
 
     const camera = useCamera();
     const geo = useGeolocation();
     const liveness = useLiveness({
         challengeCount: 2,
         challengeDuration: 8000,
-        // Auto-capture happens when isComplete becomes true
         onFail: () => {
             setError('Liveness verification timed out. Please try again.');
             setStep('error');
@@ -60,14 +97,11 @@ function AttendanceContent() {
     useEffect(() => {
         async function init() {
             try {
-                // Initialize fingerprint handling
                 const fp = await fpPromise.load();
                 const result = await fp.get();
                 const visitorId = result.visitorId;
                 setDeviceFingerprint(visitorId);
 
-                // Auto-register (or refresh) this device in the backend so the
-                // check-in handler can enforce device-binding per course settings.
                 const deviceRegistration = await registerDevice({
                     device_fingerprint: visitorId,
                     device_name: navigator?.userAgent ?? 'Browser',
@@ -80,8 +114,6 @@ function AttendanceContent() {
                     const isFingerprintConflict = /device fingerprint already registered/i.test(msg);
 
                     if (hasBoundDevice) {
-                        // Backend may return generic DB errors for idempotent same-device re-registration.
-                        // If user already has a bound device, allow check-in flow to continue.
                         sessionStorage.removeItem(DEVICE_BIND_ERROR_KEY);
                     } else {
                         sessionStorage.setItem(DEVICE_BIND_ERROR_KEY, msg);
@@ -116,7 +148,7 @@ function AttendanceContent() {
                     setStep('error');
                 }
             } catch (err) {
-                console.error("Initialization error:", err);
+                console.error('Initialization error:', err);
                 setError('Failed to initialize connection or load sessions.');
                 setStep('error');
             }
@@ -127,6 +159,7 @@ function AttendanceContent() {
 
     const handleSessionSelect = (session: Session) => {
         setSelectedSession(session);
+        setIssuedChallenge(null);
         setStep('consent');
     };
 
@@ -153,35 +186,60 @@ function AttendanceContent() {
         }
     }, [camera]);
 
-    const handleConsentComplete = useCallback(() => {
-        if (selectedSession?.require_liveness_check === false) {
-            // Session does not require liveness — skip straight to capture
-            handleCapture();
-        } else {
-            liveness.startChallenge();
-            setStep('liveness');
+    const handleConsentComplete = useCallback(async () => {
+        const session = selectedSession;
+        if (!session) {
+            setError('No session selected');
+            setStep('error');
+            return;
         }
-    }, [liveness, selectedSession]);
 
-    // Handle auto-capture when liveness is complete
+        // Always enforce baseline front-facing capture first.
+        setStep('baseline');
+    }, [selectedSession]);
+
     useEffect(() => {
         if (liveness.isComplete && liveness.livenessToken && step === 'liveness') {
-            // Wait for success animation
+            const livenessFrame = camera.capturePhoto();
+            if (!livenessFrame) {
+                setError('Failed to capture liveness image');
+                setStep('error');
+                return;
+            }
+            setLivenessImage(livenessFrame);
+
             const timer = setTimeout(() => {
-                handleCapture();
+                if (!capturedImage) {
+                    setError('Missing front-facing verification photo');
+                    setStep('error');
+                    return;
+                }
+                camera.stopCamera();
+                handleSubmit(capturedImage, livenessFrame, true);
             }, 1000);
             return () => clearTimeout(timer);
         }
-    }, [liveness.isComplete, liveness.livenessToken, step]);
+    }, [liveness.isComplete, liveness.livenessToken, step, camera, capturedImage]);
 
     useEffect(() => {
-        if ((step === 'liveness' || step === 'capture') && camera.isActive && camera.videoRef.current) {
+        if ((step === 'baseline' || step === 'liveness') && camera.isActive && camera.videoRef.current) {
             camera.videoRef.current.play().catch(console.error);
         }
     }, [step, camera.isActive, camera.videoRef]);
 
-    const handleCapture = () => {
-        // Capture logic
+    useEffect(() => {
+        if (step !== 'baseline' || !camera.isActive) return;
+        if (baselineAutoCaptureStarted) return;
+
+        const timer = setTimeout(() => {
+            setBaselineAutoCaptureStarted(true);
+            void handleBaselineCapture();
+        }, 1600);
+
+        return () => clearTimeout(timer);
+    }, [step, camera.isActive, baselineAutoCaptureStarted]);
+
+    const handleBaselineCapture = async () => {
         const image = camera.capturePhoto();
 
         if (!image) {
@@ -191,12 +249,51 @@ function AttendanceContent() {
         }
 
         setCapturedImage(image);
-        camera.stopCamera();
-        handleSubmit(image);
+
+        const session = selectedSession;
+        if (!session) {
+            setError('No session selected');
+            setStep('error');
+            return;
+        }
+
+        let hydratedSession = session;
+        if (typeof hydratedSession.require_liveness_check !== 'boolean') {
+            const detailResult = await getSessionById(session.id);
+            if (detailResult.success && detailResult.data) {
+                hydratedSession = {
+                    ...session,
+                    require_liveness_check: detailResult.data.require_liveness_check,
+                    require_face_match: detailResult.data.require_face_match,
+                };
+                setSelectedSession(hydratedSession);
+            }
+        }
+
+        const livenessRequired = hydratedSession.require_liveness_check === true;
+        if (!livenessRequired) {
+            camera.stopCamera();
+            handleSubmit(image, undefined, false);
+            return;
+        }
+
+        const challengeResult = await getCheckinChallenge(session.id);
+        if (!challengeResult.success || !challengeResult.data) {
+            setError(challengeResult.error || 'Unable to start liveness challenge');
+            setStep('error');
+            return;
+        }
+        setIssuedChallenge({
+            token: challengeResult.data.challenge_token,
+            type: challengeResult.data.challenge_type,
+            instruction: challengeResult.data.instruction,
+        });
+        liveness.startChallenge([mapBackendChallengeToFrontend(challengeResult.data.challenge_type)]);
+        setStep('liveness');
     };
 
-    const handleSubmit = async (image: string) => {
-        const livenessRequired = selectedSession?.require_liveness_check !== false;
+    const handleSubmit = async (image: string, explicitLivenessImage?: string, forceLivenessRequired?: boolean) => {
+        const livenessRequired = forceLivenessRequired ?? (selectedSession?.require_liveness_check === true);
         if (!selectedSession || !location || (livenessRequired && !liveness.livenessToken) || !deviceFingerprint) {
             setError('Missing required data for check-in');
             setStep('error');
@@ -206,12 +303,21 @@ function AttendanceContent() {
         setStep('submitting');
 
         const base64Image = image.replace(/^data:image\/\w+;base64,/, '');
+        const finalLivenessImage = explicitLivenessImage || livenessImage;
+        const base64LivenessImage = finalLivenessImage
+            ? finalLivenessImage.replace(/^data:image\/\w+;base64,/, '')
+            : undefined;
 
         const result = await submitAttendance({
             session_id: selectedSession.id,
             face_image: base64Image,
+            liveness_image: livenessRequired ? base64LivenessImage : undefined,
             location,
-            liveness_token: liveness.livenessToken ?? '',
+            liveness_token: livenessRequired ? (liveness.livenessToken ?? '') : '',
+            liveness_challenge_type: livenessRequired
+                ? ((issuedChallenge?.type as any) || mapChallengeTypeToBackend(liveness.currentChallenge?.type))
+                : 'passive',
+            liveness_challenge_token: livenessRequired ? issuedChallenge?.token : undefined,
             device_fingerprint: deviceFingerprint,
             qr_code: scannedQrCode ?? undefined,
         });
@@ -227,7 +333,10 @@ function AttendanceContent() {
 
     const handleRetry = () => {
         setError(null);
+        setIssuedChallenge(null);
+        setLivenessImage(null);
         setCapturedImage(null);
+        setBaselineAutoCaptureStarted(false);
         liveness.reset();
         camera.stopCamera();
         setConsentStep('location');
@@ -240,8 +349,8 @@ function AttendanceContent() {
         switch (step) {
             case 'select-session': return 'Select Session';
             case 'consent': return 'Permissions';
+            case 'baseline': return 'Face Verification';
             case 'liveness': return 'Liveness Check';
-            case 'capture': return 'Face Capture';
             case 'submitting': return 'Verifying';
             case 'success': return 'Success';
             case 'error': return 'Error';
@@ -287,7 +396,32 @@ function AttendanceContent() {
                     </div>
                 )}
 
-                {/* ConsentModal moved outside page-content, rendered below as a floating modal */}
+                {step === 'baseline' && (
+                    <div className="liveness-container">
+                        <div className="camera-preview">
+                            <video
+                                ref={camera.videoRef}
+                                autoPlay
+                                playsInline
+                                muted
+                                className="camera-video"
+                            />
+                            <div className="face-overlay">
+                                <div className="face-guide detecting" />
+                            </div>
+                        </div>
+                        <div className="liveness-challenge">
+                            <div className="liveness-instruction-wrapper">
+                                <span className="liveness-icon">
+                                    <Camera size={20} color="var(--color-primary)" />
+                                </span>
+                                <span className="liveness-instruction">
+                                    Look straight and center your face. Capturing verification photo automatically...
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {step === 'liveness' && (
                     <div className="liveness-container">
@@ -301,12 +435,11 @@ function AttendanceContent() {
                             />
                             <div className="face-overlay">
                                 <div className={`face-guide ${liveness.status === 'detecting' ? 'detecting' : ''} ${liveness.isComplete ? 'success' : ''}`}>
-                                    {/* SVG Progress Ring — path starts at top (12 o'clock) going clockwise */}
                                     <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 240 320">
                                         <path
                                             d="M 120 2 A 118 158 0 0 1 120 318 A 118 158 0 0 1 120 2"
                                             fill="none"
-                                            stroke={liveness.isComplete ? "var(--color-success)" : "var(--color-primary)"}
+                                            stroke={liveness.isComplete ? 'var(--color-success)' : 'var(--color-primary)'}
                                             strokeWidth="4"
                                             strokeLinecap="round"
                                             pathLength={100}
