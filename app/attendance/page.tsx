@@ -139,10 +139,19 @@ function AttendanceContent() {
 
                     if (preselectedSessionId) {
                         // Preserve QR flow behavior using the public active list.
-                        const session = (activeResult.success && activeResult.data
+                        let session = (activeResult.success && activeResult.data
                             ? activeResult.data
                             : myActiveSessions
                         ).find(s => s.id === preselectedSessionId);
+
+                        // If not found in the limited general load, retrieve it directly!
+                        if (!session) {
+                            const specificRes = await getSessionById(preselectedSessionId);
+                            if (specificRes.success && specificRes.data) {
+                                session = specificRes.data;
+                            }
+                        }
+
                         if (session) {
                             setSelectedSession(session);
                             setStep('consent');

@@ -34,10 +34,10 @@ export default function ScanPage() {
             .then(res => {
                 if (res.success && res.data) {
                     validSessionIdsRef.current = new Set(res.data.map(s => s.id));
+                    sessionsLoadedRef.current = true;
                 }
             })
-            .catch(() => { /* graceful degradation — all QRs allowed through */ })
-            .finally(() => { sessionsLoadedRef.current = true; });
+            .catch(() => { /* graceful degradation — all QRs allowed through */ });
     }, []);
 
     /** Extract session ID from whatever format the QR contains */
@@ -107,18 +107,6 @@ export default function ScanPage() {
         if (code) {
             const parsed = parseQRContent(code.data);
             if (parsed) {
-                // If sessions have loaded and this ID isn't in the list → invalid
-                if (sessionsLoadedRef.current && !validSessionIdsRef.current.has(parsed.sessionId)) {
-                    setStatus('invalid');
-                    setStatusText('Invalid QR code — not a valid session');
-                    // Resume scanning after 2.5 s
-                    setTimeout(() => {
-                        setStatus('scanning');
-                        setStatusText('Point camera at QR code');
-                        rafRef.current = requestAnimationFrame(scanFrame);
-                    }, 2500);
-                    return; // stop RAF loop; setTimeout will restart it
-                }
                 setStatus('found');
                 setStatusText('QR code detected!');
                 stopCamera();
