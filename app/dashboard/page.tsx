@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { QrCode, LogOut, BookOpen, Clock, User, Smartphone } from 'lucide-react';
+import { QrCode, LogOut, BookOpen, Clock, User, Smartphone, FileText } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { getMe, getMyCourses, getMyCheckins, logout } from '@/lib/api';
 import type { User as UserType, Course, StudentCheckin } from '@/lib/types';
@@ -171,6 +171,13 @@ export default function DashboardPage() {
                             >
                                 <Clock size={18} />
                                 <span>Active Sessions</span>
+                            </button>
+                            <button
+                                className="dashboard-quick-link"
+                                onClick={() => router.push('/checkins')}
+                            >
+                                <FileText size={18} />
+                                <span>My Check-ins</span>
                             </button>
                         </div>
 

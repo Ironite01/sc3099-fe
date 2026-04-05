@@ -537,6 +537,96 @@ export async function getCheckinChallenge(sessionId: string): Promise<ApiRespons
     }
 }
 
+// ── Appeal ────────────────────────────────────────────────────────────────────
+
+/**
+ * Appeal a rejected or flagged check-in.
+ * @param checkinId - The check-in ID to appeal
+ * @param appealReason - Student's explanation for the appeal
+ */
+export async function appealCheckin(checkinId: string, appealReason: string): Promise<ApiResponse<{
+    id: string;
+    status: string;
+    appeal_reason: string;
+    appealed_at: string;
+}>> {
+    if (!checkinId) {
+        return { success: false, error: 'Missing check-in ID', status: 400 };
+    }
+    if (!appealReason.trim()) {
+        return { success: false, error: 'Please provide a reason for your appeal', status: 400 };
+    }
+    try {
+        const response = await apiFetch(`/api/v1/checkins/${checkinId}/appeal`, {
+            method: 'POST',
+            body: { appeal_reason: appealReason.trim() },
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, data };
+        }
+
+        if (response.status === 400) {
+            const errorData = await response.json().catch(() => ({}));
+            const raw: string = errorData.detail || errorData.message || '';
+            let msg = raw || 'Unable to submit appeal.';
+            if (/already.*appeal/i.test(raw)) msg = 'You have already appealed this check-in.';
+            else if (/window.*expired|7 day/i.test(raw)) msg = 'The appeal window (7 days) has expired for this check-in.';
+            else if (/cannot.*appeal|only.*rejected|only.*flagged/i.test(raw)) msg = 'Only rejected or flagged check-ins can be appealed.';
+            return { success: false, error: msg, status: 400 };
+        }
+
+        if (response.status === 401) {
+            return { success: false, error: 'Please log in first', status: 401 };
+        }
+
+        if (response.status === 404) {
+            return { success: false, error: 'Check-in not found', status: 404 };
+        }
+
+        return { success: false, error: 'Failed to submit appeal', status: response.status };
+    } catch (error) {
+        console.error('Appeal check-in error:', error);
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+
+/**
+ * Get details for a specific check-in.
+ * @param checkinId - The check-in ID
+ */
+export async function getCheckinById(checkinId: string): Promise<ApiResponse<StudentCheckin & {
+    appeal_reason?: string;
+    appealed_at?: string;
+    review_notes?: string;
+    reviewed_at?: string;
+    distance_from_venue_meters?: number;
+    liveness_passed?: boolean;
+    risk_factors?: Record<string, any>[];
+}>> {
+    if (!checkinId) {
+        return { success: false, error: 'Missing check-in ID', status: 400 };
+    }
+    try {
+        const response = await apiFetch(`/api/v1/checkins/${checkinId}`);
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, data };
+        }
+        if (response.status === 401) {
+            return { success: false, error: 'Please log in first', status: 401 };
+        }
+        if (response.status === 404) {
+            return { success: false, error: 'Check-in not found', status: 404 };
+        }
+        return { success: false, error: 'Failed to fetch check-in details', status: response.status };
+    } catch (error) {
+        console.error('Get check-in by ID error:', error);
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+
 // ── Device Management ────────────────────────────────────────────────────────
 
 /**

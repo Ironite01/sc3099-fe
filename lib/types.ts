@@ -101,6 +101,7 @@ export interface StudentCheckin {
     course_name: string;
     status: CheckinStatus;
     checked_in_at: string;
+    appealed_at?: string | null;
     risk_score: number | null;
 }
 
