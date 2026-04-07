@@ -111,7 +111,7 @@ if (-not $NoFrontend) {
 }
 
 if (-not $NoDashboard) {
-    Start-DevWindow -Name "Dashboard (Streamlit)" -Workdir $paths.dashboard -Command "python -m streamlit run app.py --server.port 8501"
+    Start-DevWindow -Name "Dashboard (Streamlit)" -Workdir $paths.dashboard -Command "python -m streamlit run app.py --server.port 8501 --server.runOnSave false --server.fileWatcherType none --global.developmentMode false --logger.level error"
 }
 
 Write-Host ""
