@@ -27,14 +27,26 @@ function Wait-ForHttpHealthy {
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     while ((Get-Date) -lt $deadline) {
         try {
-            $resp = Invoke-RestMethod -Uri $Url -Method Get -TimeoutSec 3
-            if ($resp -and $resp.status -eq "healthy") {
-                Write-Host "Health check OK: $Url"
-                return $true
+            $resp = Invoke-WebRequest -Uri $Url -Method Get -TimeoutSec 3 -UseBasicParsing
+            if ($resp.StatusCode -eq 200) {
+                $json = $null
+                try { $json = $resp.Content | ConvertFrom-Json } catch {}
+
+                if (
+                    -not $json -or
+                    $json.status -eq "healthy" -or
+                    $json.health -eq "healthy" -or
+                    $json.ok -eq $true
+                ) {
+                    Write-Host "Health check OK: $Url"
+                    return $true
+                }
             }
         } catch {
-            Start-Sleep -Milliseconds 800
+            # keep retrying until timeout
         }
+
+        Start-Sleep -Milliseconds 800
     }
 
     Write-Warning "Timed out waiting for health: $Url"
@@ -61,6 +73,24 @@ function Start-DevWindow {
     ) | Out-Null
 }
 
+function Start-BackendWhenReady {
+    param(
+        [Parameter(Mandatory = $true)][string]$Workdir,
+        [bool]$ShouldWaitForML = $true
+    )
+
+    if ($ShouldWaitForML) {
+        $ready = Wait-ForHttpHealthy -Url "http://localhost:8001/health" -TimeoutSeconds 60
+        if (-not $ready) {
+            Write-Warning "ML did not report healthy in time. Starting backend anyway."
+        } else {
+            Write-Host "ML is healthy. Starting backend..."
+        }
+    }
+
+    Start-DevWindow -Name "Backend (Fastify)" -Workdir $Workdir -Command "npm run dev"
+}
+
 # Start ML first so backend health probe has a chance to pass on boot.
 if (-not $NoML) {
     $mlCommand = @"
@@ -70,11 +100,10 @@ if (Test-Path -LiteralPath ".\.venv\Scripts\Activate.ps1") {
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 "@
     Start-DevWindow -Name "ML (FastAPI)" -Workdir $paths.ml -Command $mlCommand
-    Wait-ForHttpHealthy -Url "http://localhost:8001/health" -TimeoutSeconds 45 | Out-Null
 }
 
 if (-not $NoBackend) {
-    Start-DevWindow -Name "Backend (Fastify)" -Workdir $paths.backend -Command "npm run dev"
+    Start-BackendWhenReady -Workdir $paths.backend -ShouldWaitForML (-not $NoML)
 }
 
 if (-not $NoFrontend) {

@@ -106,7 +106,6 @@ function EnrollPageContent() {
     // Retake photo
     const retakePhoto = useCallback(() => {
         setCapturedImage(null);
-        setError('');
         startCamera();
     }, [startCamera]);
 
