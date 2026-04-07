@@ -25,6 +25,7 @@ next-env.d.ts
 
 # Testing
 coverage
+.pytest_cache/
 
 # IDE
 .idea
@@ -35,3 +36,7 @@ coverage
 # OS
 .DS_Store
 Thumbs.db
+
+# Python cache artifacts
+__pycache__/
+*.pyc
