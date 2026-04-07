@@ -10,7 +10,7 @@ import StatusResult from '@/components/StatusResult';
 import { useCamera } from '@/hooks/useCamera';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useLiveness } from '@/hooks/useLiveness';
-import { getActiveSessions, getCheckinChallenge, getMyDevices, getMySessions, getSessionById, submitAttendance, registerDevice } from '@/lib/api';
+import { getActiveSessions, getCheckinChallenge, getMyDevices, getMySessions, getSessionById, submitAttendance, registerDevice, updateConsent } from '@/lib/api';
 import type { Session, GeolocationCoords, AttendanceResult } from '@/lib/types';
 import fpPromise from '@fingerprintjs/fingerprintjs';
 
@@ -211,9 +211,19 @@ function AttendanceContent() {
             return;
         }
 
+        const consentResult = await updateConsent(
+            cameraGranted ? true : undefined,
+            locationGranted ? true : undefined
+        );
+        if (!consentResult.success) {
+            setError(consentResult.error || 'Unable to save consent settings.');
+            setStep('error');
+            return;
+        }
+
         // Always enforce baseline front-facing capture first.
         setStep('baseline');
-    }, [selectedSession]);
+    }, [selectedSession, cameraGranted, locationGranted]);
 
     useEffect(() => {
         if (liveness.isComplete && liveness.livenessToken && step === 'liveness') {

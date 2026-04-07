@@ -6,11 +6,11 @@ scrape_configs:
   # SAIV Backend API metrics
   - job_name: 'saiv-backend'
     static_configs:
-      - targets: ['backend:8000']
+      - targets: ['host.docker.internal:8000']
     metrics_path: '/metrics'
 
   # SAIV Streamlit Dashboard operational metrics
   - job_name: 'saiv-dashboard'
     static_configs:
-      - targets: ['dashboard:9101']
+      - targets: ['host.docker.internal:9101']
     metrics_path: '/metrics'
