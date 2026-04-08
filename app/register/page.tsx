@@ -29,12 +29,12 @@ export default function RegisterPage() {
         return emailRegex.test(email);
     };
 
-    // Name validation: letters (ASCII + Latin accents), spaces, hyphens, apostrophes, dots — 2–50 chars
+    // Name validation: letters (ASCII + Latin accents), spaces, hyphens, apostrophes, dots - 2-50 chars
     const isValidFullName = (name: string): boolean => {
         return /^[A-Za-zÀ-ÖØ-öø-ÿ\s\.\-']+$/.test(name.trim()) && name.trim().length >= 2 && name.trim().length <= 50;
     };
 
-    // Password strength: 0–4 based on rules met
+    // Password strength: 0-4 based on rules met
     const getPasswordStrength = (pwd: string): number => {
         let score = 0;
         if (pwd.length >= 8) score++;
@@ -83,10 +83,10 @@ export default function RegisterPage() {
             setPasswordError('Password must be at least 8 characters');
             isValid = false;
         } else if (!/[A-Z]/.test(password)) {
-            setPasswordError('Password must include at least one uppercase letter (A–Z)');
+            setPasswordError('Password must include at least one uppercase letter (A-Z)');
             isValid = false;
         } else if (!/[a-z]/.test(password)) {
-            setPasswordError('Password must include at least one lowercase letter (a–z)');
+            setPasswordError('Password must include at least one lowercase letter (a-z)');
             isValid = false;
         } else if (!/[^a-zA-Z0-9]/.test(password)) {
             setPasswordError('Password must include at least one special character (e.g. !@#$%)');
@@ -170,7 +170,7 @@ export default function RegisterPage() {
                     }
                     router.push('/enroll?fromRegister=true&required=true');
                 } else {
-                    // Registration succeeded but auto-login failed – fall back to login page
+                    // Registration succeeded but auto-login failed - fall back to login page
                     router.push('/login?registered=true');
                 }
             } else {

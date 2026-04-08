@@ -50,7 +50,7 @@ export default function DashboardPage() {
             ]);
 
             if (!userResult.success) {
-                // Not authenticated — send to login
+                // Not authenticated - send to login
                 router.replace('/login');
                 return;
             }
@@ -144,7 +144,7 @@ export default function DashboardPage() {
                             </div>
                         )}
 
-                        {/* Primary CTA — Scan QR */}
+                        {/* Primary CTA - Scan QR */}
                         <button
                             className="qr-scan-button"
                             onClick={() => router.push('/scan')}

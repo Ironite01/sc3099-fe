@@ -37,7 +37,7 @@ export default function ScanPage() {
                     sessionsLoadedRef.current = true;
                 }
             })
-            .catch(() => { /* graceful degradation — all QRs allowed through */ });
+            .catch(() => { /* graceful degradation - all QRs allowed through */ });
     }, []);
 
     /** Extract session ID from whatever format the QR contains */
@@ -124,7 +124,7 @@ export default function ScanPage() {
         stopCamera();
         setCameraError(null);
 
-        // Check how many video devices exist — if >1, show flip button
+        // Check how many video devices exist - if >1, show flip button
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             const videoDevices = devices.filter(d => d.kind === 'videoinput');
@@ -132,7 +132,7 @@ export default function ScanPage() {
         } catch { /* ignore */ }
 
         // Try requested mode with `exact` first (forces rear on mobile).
-        // On devices that only have one camera (e.g. laptop), `exact` throws —
+        // On devices that only have one camera (e.g. laptop), `exact` throws -
         // we catch it and fall back to whatever camera is available.
         const constraints: MediaStreamConstraints[] = [
             { video: { facingMode: { exact: mode }, width: { ideal: 1280 }, height: { ideal: 720 } } },
@@ -244,7 +244,7 @@ export default function ScanPage() {
                             </div>
                         </div>
 
-                        {/* Flip camera button — only shown when device has multiple cameras */}
+                        {/* Flip camera button - only shown when device has multiple cameras */}
                         {canFlip && (
                             <button
                                 className="qr-flip-button"

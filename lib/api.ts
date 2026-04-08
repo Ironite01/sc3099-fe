@@ -321,7 +321,7 @@ export async function logout(): Promise<void> {
     try {
         await apiFetch('/api/v1/auth/logout', { method: 'POST' });
     } catch {
-        // Ignore errors — redirect to login regardless
+        // Ignore errors - redirect to login regardless
     } finally {
         sessionStorage.removeItem('saiv_user');
     }
@@ -674,7 +674,7 @@ export async function getCheckinById(checkinId: string): Promise<ApiResponse<Stu
 
 /**
  * Register (or refresh) the current device fingerprint in the backend.
- * Uses upsert semantics — safe to call on every attendance page load.
+ * Uses upsert semantics - safe to call on every attendance page load.
  *
  * @param payload - Device info to register
  * @param accessToken - Optional JWT token. When provided, used as `Authorization: Bearer`
