@@ -54,7 +54,6 @@ export default function LivenessChallenge({
             <p className="loading-subtext" style={{ marginTop: '0.35rem' }}>
                 Keep your head still until the verifier confirms.
             </p>
-            {/* Hidden skip button for development/fallback */}
             <button
                 className="liveness-skip-button"
                 onClick={onActionDetected}

@@ -17,7 +17,6 @@ export interface Course {
     id: string;
     code: string;
     name: string;
-    // Backend fields
     semester?: string;
     is_active?: boolean;
     venue_name?: string | null;
@@ -25,7 +24,6 @@ export interface Course {
     venue_longitude?: number | null;
     geofence_radius_meters?: number | null;
     enrolled_at?: string;
-    // Optional UI fields for compatibility with older payload shapes.
     instructor?: string;
     schedule?: string;
     status?: 'pending' | 'approved' | 'rejected';

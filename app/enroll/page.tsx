@@ -21,7 +21,6 @@ function EnrollPageContent() {
     const [error, setError] = useState<string>('');
     const [qualityScore, setQualityScore] = useState<number | null>(null);
 
-    // Start camera stream
     const startCamera = useCallback(async () => {
         try {
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -60,7 +59,6 @@ function EnrollPageContent() {
         }
     }, [step]);
 
-    // Stop camera stream
     const stopCamera = useCallback(() => {
         if (streamRef.current) {
             streamRef.current.getTracks().forEach(track => track.stop());
@@ -79,7 +77,6 @@ function EnrollPageContent() {
         };
     }, []);
 
-    // Capture photo from video
     const capturePhoto = useCallback(() => {
         if (!videoRef.current || !canvasRef.current) return;
 
@@ -92,7 +89,6 @@ function EnrollPageContent() {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Mirror the image for selfie mode
         ctx.translate(canvas.width, 0);
         ctx.scale(-1, 1);
         ctx.drawImage(video, 0, 0);
@@ -103,13 +99,11 @@ function EnrollPageContent() {
         stopCamera();
     }, [stopCamera]);
 
-    // Retake photo
     const retakePhoto = useCallback(() => {
         setCapturedImage(null);
         startCamera();
     }, [startCamera]);
 
-    // Submit photo for enrollment
     const submitPhoto = async () => {
         if (!capturedImage) return;
 
@@ -117,7 +111,6 @@ function EnrollPageContent() {
         setError('');
 
         try {
-            // Persist camera consent before face enrollment to satisfy backend policy checks.
             const consentResult = await updateConsent(true);
             if (!consentResult.success) {
                 setError(consentResult.error || 'Unable to save camera consent.');
@@ -142,31 +135,26 @@ function EnrollPageContent() {
         }
     };
 
-    // Handle consent acceptance
     const acceptConsent = () => {
         startCamera();
     };
 
-    // Cleanup on unmount
     useEffect(() => {
         return () => {
             stopCamera();
         };
     }, [stopCamera]);
 
-    // Go to home after success
     const goToHome = () => {
         router.push('/');
     };
 
     return (
         <main className="enroll-container">
-            {/* Background */}
             <div className="bg-orb bg-orb-1"></div>
             <div className="bg-orb bg-orb-2"></div>
 
             <div className="enroll-card">
-                {/* Header */}
                 <div className="enroll-header">
                     {fromRegister && (
                         <div className="step-indicator">Step 2 of 2 - Account Setup</div>
@@ -186,7 +174,6 @@ function EnrollPageContent() {
                     </p>
                 </div>
 
-                {/* Consent Step */}
                 {step === 'consent' && (
                     <div className="enroll-content">
                         <div className="consent-info">
@@ -219,7 +206,6 @@ function EnrollPageContent() {
                     </div>
                 )}
 
-                {/* Camera Step */}
                 {step === 'camera' && (
                     <div className="enroll-content">
                         <div className="camera-container">
@@ -241,7 +227,6 @@ function EnrollPageContent() {
                     </div>
                 )}
 
-                {/* Preview Step */}
                 {step === 'preview' && capturedImage && (
                     <div className="enroll-content">
                         <div className="preview-container">
@@ -259,7 +244,6 @@ function EnrollPageContent() {
                     </div>
                 )}
 
-                {/* Submitting Step */}
                 {step === 'submitting' && (
                     <div className="enroll-content">
                         <div className="loading-container">
@@ -269,7 +253,6 @@ function EnrollPageContent() {
                     </div>
                 )}
 
-                {/* Success Step */}
                 {step === 'success' && (
                     <div className="enroll-content">
                         <div className="success-container">
@@ -297,7 +280,6 @@ function EnrollPageContent() {
                     </div>
                 )}
 
-                {/* Error Step */}
                 {step === 'error' && (
                     <div className="enroll-content">
                         <div className="error-container">
@@ -317,7 +299,6 @@ function EnrollPageContent() {
                     </div>
                 )}
 
-                {/* General Error Display */}
                 {error && step === 'consent' && (
                     <div className="error-banner" role="alert">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -329,7 +310,6 @@ function EnrollPageContent() {
                     </div>
                 )}
 
-                {/* Hidden canvas for photo capture */}
                 <canvas ref={canvasRef} style={{ display: 'none' }} />
             </div>
         </main>

@@ -23,18 +23,15 @@ export default function RegisterPage() {
     const [confirmPasswordError, setConfirmPasswordError] = useState('');
     const [fullNameError, setFullNameError] = useState('');
 
-    // Email validation regex
     const isValidEmail = (email: string): boolean => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
     };
 
-    // Name validation: letters (ASCII + Latin accents), spaces, hyphens, apostrophes, dots - 2-50 chars
     const isValidFullName = (name: string): boolean => {
         return /^[A-Za-zÀ-ÖØ-öø-ÿ\s\.\-']+$/.test(name.trim()) && name.trim().length >= 2 && name.trim().length <= 50;
     };
 
-    // Password strength: 0-4 based on rules met
     const getPasswordStrength = (pwd: string): number => {
         let score = 0;
         if (pwd.length >= 8) score++;
@@ -46,7 +43,6 @@ export default function RegisterPage() {
 
     const pwdStrength = getPasswordStrength(password);
 
-    // Validate form before submission
     const validateForm = (): boolean => {
         let isValid = true;
         setEmailError('');
@@ -123,11 +119,8 @@ export default function RegisterPage() {
             });
 
             if (result.success) {
-                // Auto-login then redirect to face enrollment (Step 2 of sign up)
                 const loginResult = await login(email, password);
                 if (loginResult.success) {
-                    // Pass the access token explicitly because the httpOnly cookie
-                    // from the login response may not be stored yet (Next.js proxy).
                     try {
                         const devResult = await (async () => {
                             const fp = await fpPromise.load();
@@ -170,7 +163,6 @@ export default function RegisterPage() {
                     }
                     router.push('/enroll?fromRegister=true&required=true');
                 } else {
-                    // Registration succeeded but auto-login failed - fall back to login page
                     router.push('/login?registered=true');
                 }
             } else {
@@ -189,13 +181,11 @@ export default function RegisterPage() {
 
     return (
         <main className="login-container">
-            {/* Background gradient orbs */}
             <div className="bg-orb bg-orb-1"></div>
             <div className="bg-orb bg-orb-2"></div>
             <div className="bg-orb bg-orb-3"></div>
 
             <div className="login-card">
-                {/* Logo/Brand */}
                 <div className="login-header">
                     <div className="logo">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -209,9 +199,7 @@ export default function RegisterPage() {
                     <p className="tagline">Join SAIV for secure attendance tracking</p>
                 </div>
 
-                {/* Register Form */}
                 <form onSubmit={handleSubmit} className="login-form">
-                    {/* General Error */}
                     {error && (
                         <div className="error-banner" role="alert">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -223,7 +211,6 @@ export default function RegisterPage() {
                         </div>
                     )}
 
-                    {/* Full Name Field */}
                     <div className="form-group">
                         <label htmlFor="fullName">Full Name</label>
                         <div className="input-wrapper">
@@ -253,7 +240,6 @@ export default function RegisterPage() {
                         {fullNameError && <span className="field-error">{fullNameError}</span>}
                     </div>
 
-                    {/* Email Field */}
                     <div className="form-group">
                         <label htmlFor="email">Email</label>
                         <div className="input-wrapper">
@@ -278,7 +264,6 @@ export default function RegisterPage() {
                         {emailError && <span className="field-error">{emailError}</span>}
                     </div>
 
-                    {/* Password Field */}
                     <div className="form-group">
                         <label htmlFor="password">Password</label>
                         <div className="input-wrapper">
@@ -317,7 +302,6 @@ export default function RegisterPage() {
                         )}
                     </div>
 
-                    {/* Confirm Password Field */}
                     <div className="form-group">
                         <label htmlFor="confirmPassword">Confirm Password</label>
                         <div className="input-wrapper">
@@ -351,7 +335,6 @@ export default function RegisterPage() {
                         {confirmPasswordError && <span className="field-error">{confirmPasswordError}</span>}
                     </div>
 
-                    {/* Submit Button */}
                     <button
                         type="submit"
                         className="login-button"
@@ -388,7 +371,6 @@ export default function RegisterPage() {
                     </div>
                 </form>
 
-                {/* Footer */}
                 <div className="login-footer">
                     <p>Student Check-in System</p>
                 </div>

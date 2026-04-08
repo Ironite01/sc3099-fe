@@ -19,13 +19,11 @@ export default function LoginPage() {
     const [emailError, setEmailError] = useState('');
     const [passwordError, setPasswordError] = useState('');
 
-    // Email validation regex
     const isValidEmail = (email: string): boolean => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
     };
 
-    // Validate form before submission
     const validateForm = (): boolean => {
         let isValid = true;
         setEmailError('');
@@ -61,9 +59,6 @@ export default function LoginPage() {
             const result = await login(email, password);
 
             if (result.success) {
-                // Automatically bind current browser/device after successful login.
-                // Pass the access token explicitly because the httpOnly cookie
-                // from the login response may not be stored yet (Next.js proxy).
                 try {
                     const devResult = await (async () => {
                         const fp = await fpPromise.load();
@@ -75,8 +70,6 @@ export default function LoginPage() {
                         }, result.data?.access_token);
                     })();
 
-                    // Do not block login on device registration failure.
-                    // Device-binding is enforced during check-in based on course settings.
                     if (!devResult.success) {
                         console.warn('[SAIV] Device registration after login returned error:', devResult.error);
                         const bindError = (devResult.error || '').toLowerCase();
@@ -108,7 +101,6 @@ export default function LoginPage() {
                     );
                 }
 
-                // Cache user info so dashboard can read the latest display name.
                 if (result.data?.user) {
                     sessionStorage.setItem('saiv_user', JSON.stringify(result.data.user));
                 }
@@ -117,7 +109,6 @@ export default function LoginPage() {
                     return;
                 }
 
-                // Redirect to dashboard on successful login
                 router.push('/dashboard');
             } else {
                 setError(result.error || 'Login failed');
@@ -131,13 +122,11 @@ export default function LoginPage() {
 
     return (
         <main className="login-container">
-            {/* Background gradient orbs */}
             <div className="bg-orb bg-orb-1"></div>
             <div className="bg-orb bg-orb-2"></div>
             <div className="bg-orb bg-orb-3"></div>
 
             <div className="login-card">
-                {/* Logo/Brand */}
                 <div className="login-header">
                     <div className="logo">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -149,9 +138,7 @@ export default function LoginPage() {
                     <p className="tagline">Secure Attendance & Identity Verification</p>
                 </div>
 
-                {/* Login Form */}
                 <form onSubmit={handleSubmit} className="login-form">
-                    {/* General Error */}
                     {error && (
                         <div className="error-banner" role="alert">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -163,7 +150,6 @@ export default function LoginPage() {
                         </div>
                     )}
 
-                    {/* Email Field */}
                     <div className="form-group">
                         <label htmlFor="email">Email</label>
                         <div className="input-wrapper">
@@ -188,7 +174,6 @@ export default function LoginPage() {
                         {emailError && <span className="field-error">{emailError}</span>}
                     </div>
 
-                    {/* Password Field */}
                     <div className="form-group">
                         <label htmlFor="password">Password</label>
                         <div className="input-wrapper">
@@ -222,7 +207,6 @@ export default function LoginPage() {
                         {passwordError && <span className="field-error">{passwordError}</span>}
                     </div>
 
-                    {/* Submit Button */}
                     <button
                         type="submit"
                         className="login-button"
@@ -239,7 +223,6 @@ export default function LoginPage() {
                     </button>
                 </form>
 
-                {/* Footer */}
                 <div className="login-footer">
                     <p>Student Check-in System</p>
                     <p style={{ marginTop: '0.5rem' }}>

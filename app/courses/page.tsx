@@ -30,7 +30,6 @@ export default function CoursesPage() {
         fetchCourses();
     }, []);
 
-    // Backend usually returns enrolled/active courses; keep status guard for compatibility.
     const approvedCourses = courses.filter(c => !c.status || c.status === 'approved');
     const pendingCourses = courses.filter(c => c.status === 'pending');
 

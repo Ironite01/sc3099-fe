@@ -12,8 +12,6 @@ const DEVICE_BIND_ERROR_KEY = 'saiv_device_bind_error';
 function formatCheckinTimestamp(value: string): string | null {
     if (!value) return null;
 
-    // Keep parsing behavior identical to /devices page.
-    // This correctly handles ISO with offset/Z, and local-style strings.
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
         return null;
@@ -50,7 +48,6 @@ export default function DashboardPage() {
             ]);
 
             if (!userResult.success) {
-                // Not authenticated - send to login
                 router.replace('/login');
                 return;
             }
@@ -62,8 +59,6 @@ export default function DashboardPage() {
 
             setUser(userResult.data ?? null);
             if (coursesResult.success && coursesResult.data) {
-                // Backend /courses/enrolled returns enrolled rows without a
-                // status field. Only apply status filtering when provided.
                 setCourses(coursesResult.data.filter(c => !c.status || c.status === 'approved'));
                 setCoursesError(null);
             } else {
@@ -124,7 +119,6 @@ export default function DashboardPage() {
                     </div>
                 ) : (
                     <>
-                        {/* Greeting */}
                         <div className="dashboard-greeting">
                             <div className="dashboard-avatar">
                                 <User size={28} />
@@ -144,7 +138,6 @@ export default function DashboardPage() {
                             </div>
                         )}
 
-                        {/* Primary CTA - Scan QR */}
                         <button
                             className="qr-scan-button"
                             onClick={() => router.push('/scan')}
@@ -158,7 +151,6 @@ export default function DashboardPage() {
                             </div>
                         </button>
 
-                        {/* Quick links row */}
                         <div className="dashboard-quick-links">
                             <button
                                 className="dashboard-quick-link"
@@ -183,7 +175,6 @@ export default function DashboardPage() {
                             </button>
                         </div>
 
-                        {/* Enrolled Courses */}
                         <section className="dashboard-section">
                             <div className="section-header">
                                 <h3 className="section-title">

@@ -25,7 +25,6 @@ export default function ScanPage() {
     const [facingMode, setFacingMode] = useState<FacingMode>('environment');
     const [canFlip, setCanFlip] = useState(false);
 
-    /** Set of valid session IDs loaded from the server on mount */
     const validSessionIdsRef = useRef<Set<string>>(new Set());
     const sessionsLoadedRef = useRef(false);
 
@@ -40,7 +39,6 @@ export default function ScanPage() {
             .catch(() => { /* graceful degradation - all QRs allowed through */ });
     }, []);
 
-    /** Extract session ID from whatever format the QR contains */
     const parseQRContent = (content: string): { sessionId: string; raw: string } | null => {
         try {
             const url = new URL(content);
@@ -79,7 +77,6 @@ export default function ScanPage() {
         if (isNavigatingRef.current) return;
         isNavigatingRef.current = true;
         stopCamera();
-        // Give the browser one short frame to release camera hardware before route transition.
         await new Promise((resolve) => setTimeout(resolve, 80));
         window.location.assign('/dashboard');
     }, [stopCamera]);
@@ -124,16 +121,12 @@ export default function ScanPage() {
         stopCamera();
         setCameraError(null);
 
-        // Check how many video devices exist - if >1, show flip button
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             const videoDevices = devices.filter(d => d.kind === 'videoinput');
             setCanFlip(videoDevices.length > 1);
         } catch { /* ignore */ }
 
-        // Try requested mode with `exact` first (forces rear on mobile).
-        // On devices that only have one camera (e.g. laptop), `exact` throws -
-        // we catch it and fall back to whatever camera is available.
         const constraints: MediaStreamConstraints[] = [
             { video: { facingMode: { exact: mode }, width: { ideal: 1280 }, height: { ideal: 720 } } },
             { video: { facingMode: mode, width: { ideal: 1280 }, height: { ideal: 720 } } },
@@ -157,7 +150,6 @@ export default function ScanPage() {
             } catch { /* try next constraint */ }
         }
 
-        // All attempts failed
         setCameraError('Camera access denied. Please allow camera permissions and try again.');
         setStatus('error');
     }, [stopCamera, scanFrame]);
@@ -233,7 +225,6 @@ export default function ScanPage() {
                             className="qr-video"
                         />
 
-                        {/* Viewfinder overlay */}
                         <div className="qr-overlay">
                             <div className={`qr-frame ${status === 'found' ? 'qr-frame-success' : ''}`}>
                                 <span className="qr-corner qr-corner-tl" />
@@ -244,7 +235,6 @@ export default function ScanPage() {
                             </div>
                         </div>
 
-                        {/* Flip camera button - only shown when device has multiple cameras */}
                         {canFlip && (
                             <button
                                 className="qr-flip-button"
@@ -265,7 +255,6 @@ export default function ScanPage() {
 
             </div>
 
-            {/* Hidden canvas for jsQR processing */}
             <canvas ref={canvasRef} style={{ display: 'none' }} />
         </main>
     );

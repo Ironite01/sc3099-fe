@@ -208,13 +208,11 @@ function AttendanceContent() {
                     setSessions(myActiveSessions);
 
                     if (preselectedSessionId) {
-                        // Preserve QR flow behavior using the public active list.
                         let session = (activeResult.success && activeResult.data
                             ? activeResult.data
                             : myActiveSessions
                         ).find(s => s.id === preselectedSessionId);
 
-                        // If not found in the limited general load, retrieve it directly!
                         if (!session) {
                             const specificRes = await getSessionById(preselectedSessionId);
                             if (specificRes.success && specificRes.data) {
@@ -291,7 +289,6 @@ function AttendanceContent() {
             return;
         }
 
-        // Always enforce baseline front-facing capture first.
         setStep('baseline');
     }, [selectedSession, cameraGranted, locationGranted]);
 
@@ -318,8 +315,6 @@ function AttendanceContent() {
         }
     }, [liveness.isComplete, liveness.livenessToken, step, camera, capturedImage, livenessImage]);
 
-    // Capture liveness frame as soon as challenge turns success, while the user
-    // is still holding the required pose.
     useEffect(() => {
         if (step !== 'liveness') return;
         if (liveness.status !== 'success') return;
