@@ -4,6 +4,9 @@ export interface User {
     full_name: string;
     role: 'student' | 'instructor' | 'admin';
     face_enrolled: boolean;
+    camera_consent?: boolean;
+    geolocation_consent?: boolean;
+    created_at?: string;
 }
 
 export interface RegisterPayload {

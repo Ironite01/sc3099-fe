@@ -10,6 +10,7 @@ function EnrollPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const fromRegister = searchParams.get('fromRegister') === 'true';
+    const fromProfile = searchParams.get('fromProfile') === 'true';
     const enrollmentRequired = searchParams.get('required') === 'true';
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -146,6 +147,10 @@ function EnrollPageContent() {
     }, [stopCamera]);
 
     const goToHome = () => {
+        if (fromProfile) {
+            router.push('/profile');
+            return;
+        }
         router.push('/');
     };
 
@@ -170,6 +175,8 @@ function EnrollPageContent() {
                     <p className="tagline">
                         {fromRegister
                             ? 'Last step - set up face recognition for attendance check-ins'
+                            : fromProfile
+                                ? 'Update your face profile for future attendance verification'
                             : 'Verify your identity for secure check-ins'}
                     </p>
                 </div>
@@ -262,7 +269,13 @@ function EnrollPageContent() {
                                     <polyline points="22 4 12 14.01 9 11.01" />
                                 </svg>
                             </div>
-                            <h2>{fromRegister ? 'Account Setup Complete!' : 'Face Enrolled!'}</h2>
+                            <h2>
+                                {fromRegister
+                                    ? 'Account Setup Complete!'
+                                    : fromProfile
+                                        ? 'Face Profile Updated!'
+                                    : 'Face Enrolled!'}
+                            </h2>
                             {qualityScore !== null && (
                                 <p className="quality-score">
                                     Quality Score: {Math.round(qualityScore * 100)}%
@@ -271,6 +284,8 @@ function EnrollPageContent() {
                             <p>
                                 {fromRegister
                                     ? 'Your account is ready. You can now use face verification for attendance check-ins.'
+                                    : fromProfile
+                                        ? 'Your new face profile will be used for future check-ins.'
                                     : 'You can now use face verification for check-ins.'}
                             </p>
                         </div>

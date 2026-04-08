@@ -385,6 +385,46 @@ export async function updateConsent(
     }
 }
 
+export async function updateProfile(payload: {
+    full_name: string;
+}): Promise<{
+    success: boolean;
+    data?: User;
+    error?: string;
+    status?: number;
+}> {
+    try {
+        const response = await apiFetch('/api/v1/users/me', {
+            method: 'PUT',
+            body: payload,
+        });
+
+        const data = await response.json().catch(() => ({} as any));
+        if (response.ok) {
+            return { success: true, data };
+        }
+
+        if (response.status === 400 || response.status === 422) {
+            const raw = String(data?.detail || data?.message || '').toLowerCase();
+            if (raw.includes('full_name')) {
+                return { success: false, error: 'Please enter a valid full name.', status: response.status };
+            }
+            return { success: false, error: data?.detail || data?.message || 'Invalid profile update request.', status: response.status };
+        }
+        if (response.status === 401) {
+            return { success: false, error: 'Please log in first.', status: 401 };
+        }
+        if (response.status === 429) {
+            return { success: false, error: 'Too many requests. Please try again later.', status: 429 };
+        }
+
+        return { success: false, error: data?.detail || data?.message || 'Failed to update profile.', status: response.status };
+    } catch (error) {
+        console.error('Update profile error:', error);
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+
 export async function getMe(): Promise<ApiResponse<User>> {
     try {
         const response = await apiFetch('/api/v1/users/me');

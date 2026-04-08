@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { QrCode, LogOut, BookOpen, Clock, User, Smartphone, FileText } from 'lucide-react';
+import { QrCode, LogOut, BookOpen, Clock, User, Smartphone, FileText, CircleUserRound } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { getMe, getMyCourses, getMyCheckins, logout } from '@/lib/api';
 import type { User as UserType, Course, StudentCheckin } from '@/lib/types';
@@ -101,13 +101,22 @@ export default function DashboardPage() {
                 title="Dashboard"
                 showBack={false}
                 rightAction={
-                    <button
-                        className="icon-button"
-                        onClick={handleLogout}
-                        aria-label="Logout"
-                    >
-                        <LogOut size={20} />
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                            className="icon-button"
+                            onClick={() => router.push('/profile')}
+                            aria-label="Profile"
+                        >
+                            <CircleUserRound size={20} />
+                        </button>
+                        <button
+                            className="icon-button"
+                            onClick={handleLogout}
+                            aria-label="Logout"
+                        >
+                            <LogOut size={20} />
+                        </button>
+                    </div>
                 }
             />
 
