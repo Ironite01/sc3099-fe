@@ -17,6 +17,33 @@ interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
     body?: object | string;
 }
 
+let refreshInFlight: Promise<boolean> | null = null;
+
+async function tryRefreshAccessToken(): Promise<boolean> {
+    if (refreshInFlight) return refreshInFlight;
+
+    refreshInFlight = (async () => {
+        try {
+            const response = await fetch('/api/v1/auth/refresh', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-saiv-cookie-auth': '1',
+                },
+                credentials: 'include',
+                body: JSON.stringify({}),
+            });
+            return response.ok;
+        } catch {
+            return false;
+        } finally {
+            refreshInFlight = null;
+        }
+    })();
+
+    return refreshInFlight;
+}
+
 function normalizeCourseList(payload: any): Course[] {
     if (Array.isArray(payload)) return payload as Course[];
     if (Array.isArray(payload?.items)) return payload.items as Course[];
@@ -52,6 +79,22 @@ export async function apiFetch(path: string, options: ApiFetchOptions = {}): Pro
     }
 
     const url = `${API_BASE_URL}${path}`;
+    const firstResponse = await fetch(url, config);
+    if (firstResponse.status !== 401) {
+        return firstResponse;
+    }
+
+    // Never refresh recursively for auth endpoints that are expected to return 401.
+    if (path.startsWith('/api/v1/auth/')) {
+        return firstResponse;
+    }
+
+    const refreshed = await tryRefreshAccessToken();
+    if (!refreshed) {
+        return firstResponse;
+    }
+
+    // Retry once after refresh.
     return fetch(url, config);
 }
 
