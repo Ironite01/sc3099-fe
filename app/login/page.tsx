@@ -207,6 +207,12 @@ export default function LoginPage() {
                         {passwordError && <span className="field-error">{passwordError}</span>}
                     </div>
 
+                    <div className="forgot-password-row">
+                        <Link href="/forgot-password" className="forgot-password-link">
+                            Forgot password?
+                        </Link>
+                    </div>
+
                     <button
                         type="submit"
                         className="login-button"

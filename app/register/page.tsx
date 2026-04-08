@@ -37,6 +37,7 @@ export default function RegisterPage() {
         if (pwd.length >= 8) score++;
         if (/[A-Z]/.test(pwd)) score++;
         if (/[a-z]/.test(pwd)) score++;
+        if (/[0-9]/.test(pwd)) score++;
         if (/[^a-zA-Z0-9]/.test(pwd)) score++;
         return score;
     };
@@ -83,6 +84,9 @@ export default function RegisterPage() {
             isValid = false;
         } else if (!/[a-z]/.test(password)) {
             setPasswordError('Password must include at least one lowercase letter (a-z)');
+            isValid = false;
+        } else if (!/[0-9]/.test(password)) {
+            setPasswordError('Password must include at least one number (0-9)');
             isValid = false;
         } else if (!/[^a-zA-Z0-9]/.test(password)) {
             setPasswordError('Password must include at least one special character (e.g. !@#$%)');
@@ -295,7 +299,7 @@ export default function RegisterPage() {
                             </button>
                         </div>
                         {passwordError && <span className="field-error">{passwordError}</span>}
-                        {password && !passwordError && pwdStrength < 4 && (
+                        {password && !passwordError && pwdStrength < 5 && (
                             <p className="password-hint">
                                 Use 8+ characters with uppercase, lowercase, a number &amp; a symbol.
                             </p>

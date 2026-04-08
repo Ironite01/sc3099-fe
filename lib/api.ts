@@ -220,6 +220,88 @@ export async function register(payload: RegisterPayload): Promise<{
     }
 }
 
+export async function requestPasswordReset(email: string): Promise<{
+    success: boolean;
+    message?: string;
+    error?: string;
+    status?: number;
+}> {
+    try {
+        const response = await apiFetch('/api/v1/auth/forgot-password', {
+            method: 'POST',
+            body: { email },
+        });
+
+        const data = await response.json().catch(() => ({} as any));
+        if (response.ok) {
+            return {
+                success: true,
+                message: data?.message || 'If the account exists, a password reset link has been sent.'
+            };
+        }
+
+        if (response.status === 429) {
+            return { success: false, error: 'Too many requests. Please try again later.', status: 429 };
+        }
+        return {
+            success: false,
+            error: data?.detail || data?.message || 'Failed to request password reset.',
+            status: response.status
+        };
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+
+export async function resetPassword(token: string, password: string): Promise<{
+    success: boolean;
+    message?: string;
+    error?: string;
+    status?: number;
+}> {
+    try {
+        const response = await apiFetch('/api/v1/auth/reset-password', {
+            method: 'POST',
+            body: { token, password },
+        });
+
+        const data = await response.json().catch(() => ({} as any));
+        if (response.ok) {
+            return {
+                success: true,
+                message: data?.message || 'Password has been reset successfully.'
+            };
+        }
+
+        if (response.status === 401) {
+            return { success: false, error: 'Reset link is invalid or expired.', status: 401 };
+        }
+        if (response.status === 400 || response.status === 422) {
+            const raw = String(data?.detail || data?.message || '').toLowerCase();
+            if (raw.includes('different from your current password') || raw.includes('same password')) {
+                return { success: false, error: 'New password must be different from your current password.', status: response.status };
+            }
+            if (raw.includes('at least 8')) {
+                return { success: false, error: 'Password must be at least 8 characters.', status: response.status };
+            }
+            if (raw.includes('password')) {
+                return { success: false, error: 'Password does not meet the requirements.', status: response.status };
+            }
+            return { success: false, error: data?.detail || data?.message || 'Invalid reset request.', status: response.status };
+        }
+
+        return {
+            success: false,
+            error: data?.detail || data?.message || 'Failed to reset password.',
+            status: response.status
+        };
+    } catch (error) {
+        console.error('Reset password error:', error);
+        return { success: false, error: 'Unable to connect to server.' };
+    }
+}
+
 /**
  * Enroll face for identity verification
  * @param imageBase64 - Base64-encoded face image (without data URL prefix)

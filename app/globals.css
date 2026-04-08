@@ -236,6 +236,18 @@ body {
   flex-shrink: 0;
 }
 
+.success-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 12px;
+  color: #34d399;
+  font-size: 0.875rem;
+}
+
 @keyframes shake {
 
   0%,
@@ -437,6 +449,34 @@ body {
 
 .login-footer .register-link:hover {
   color: #9cb8ff;
+}
+
+.forgot-password-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: -0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.forgot-password-link {
+  color: #7aa2ff;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 600;
+}
+
+.forgot-password-link:hover {
+  color: #9cb8ff;
+}
+
+.auth-compact-button {
+  padding: 0.8rem 1.1rem;
+  min-height: 46px;
+  font-size: 1rem;
+  margin-top: 0.25rem;
 }
 
 /* ============================================
