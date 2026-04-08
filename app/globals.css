@@ -2226,22 +2226,30 @@ body {
   bottom: 140px;
   right: 24px;
   z-index: 20;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.55);
+  min-height: 44px;
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.68);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.45rem;
   cursor: pointer;
   backdrop-filter: blur(8px);
-  transition: background 0.2s;
+  transition: background 0.2s, border-color 0.2s;
 }
 
 .qr-flip-button:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.qr-flip-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 /* ============================================

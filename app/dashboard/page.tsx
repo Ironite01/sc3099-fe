@@ -138,7 +138,9 @@ export default function DashboardPage() {
                         {deviceBindError && (
                             <div className="error-message" style={{ marginBottom: '1rem' }}>
                                 {deviceBindError}
-                                {!/another account/i.test(deviceBindError) ? ' Open My Devices to rebind this browser/device before check-in.' : ''}
+                                {!/another account|revoked by an administrator/i.test(deviceBindError)
+                                    ? ' Open My Devices to rebind this browser/device before check-in.'
+                                    : ''}
                             </div>
                         )}
 

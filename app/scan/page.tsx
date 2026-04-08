@@ -250,8 +250,10 @@ export default function ScanPage() {
                                 className="qr-flip-button"
                                 onClick={handleFlip}
                                 aria-label="Flip camera"
+                                title="Flip camera"
                             >
                                 <FlipHorizontal size={22} />
+                                <span className="qr-flip-label">Flip Camera</span>
                             </button>
                         )}
 

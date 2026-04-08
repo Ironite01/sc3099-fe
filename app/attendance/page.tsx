@@ -28,6 +28,73 @@ type AttendanceStep =
 
 type ConsentStep = 'intro' | 'location' | 'camera' | 'ready';
 
+type FrontendChallengeType = 'blink' | 'turn_left' | 'turn_right' | 'smile' | 'look_up' | 'look_down';
+
+function getChallengeMovementThreshold(challengeType?: string) {
+    switch (challengeType) {
+        case 'head_left':
+        case 'head_right':
+            return 0.028;
+        case 'head_up':
+        case 'head_down':
+            return 0.022;
+        case 'blink':
+            return 0.015;
+        default:
+            return 0.02;
+    }
+}
+
+async function computeNormalizedFrameDifference(
+    baselineDataUrl: string,
+    challengeDataUrl: string,
+    sampleSize = 64
+): Promise<number | null> {
+    if (typeof window === 'undefined') return null;
+
+    const loadImage = (src: string) =>
+        new Promise<HTMLImageElement>((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error('Failed to load frame image'));
+            img.src = src;
+        });
+
+    try {
+        const [baselineImg, challengeImg] = await Promise.all([
+            loadImage(baselineDataUrl),
+            loadImage(challengeDataUrl),
+        ]);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = sampleSize;
+        canvas.height = sampleSize;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) return null;
+
+        const toGray = (img: HTMLImageElement) => {
+            ctx.clearRect(0, 0, sampleSize, sampleSize);
+            ctx.drawImage(img, 0, 0, sampleSize, sampleSize);
+            const data = ctx.getImageData(0, 0, sampleSize, sampleSize).data;
+            const gray = new Float32Array(sampleSize * sampleSize);
+            for (let i = 0, j = 0; i < data.length; i += 4, j += 1) {
+                gray[j] = (data[i]! * 0.299 + data[i + 1]! * 0.587 + data[i + 2]! * 0.114) / 255;
+            }
+            return gray;
+        };
+
+        const g1 = toGray(baselineImg);
+        const g2 = toGray(challengeImg);
+        let diffSum = 0;
+        for (let i = 0; i < g1.length; i += 1) {
+            diffSum += Math.abs(g1[i]! - g2[i]!);
+        }
+        return diffSum / g1.length;
+    } catch {
+        return null;
+    }
+}
+
 function mapChallengeTypeToBackend(type?: 'blink' | 'turn_left' | 'turn_right' | 'smile' | 'look_up' | 'look_down') {
     switch (type) {
         case 'blink':
@@ -46,7 +113,7 @@ function mapChallengeTypeToBackend(type?: 'blink' | 'turn_left' | 'turn_right' |
     }
 }
 
-function mapBackendChallengeToFrontend(type?: string): 'blink' | 'turn_left' | 'turn_right' | 'smile' | 'look_up' | 'look_down' {
+function mapBackendChallengeToFrontend(type?: string): FrontendChallengeType {
     switch (type) {
         case 'blink':
             return 'blink';
@@ -112,6 +179,7 @@ function AttendanceContent() {
                     const devices = await getMyDevices();
                     const hasBoundDevice = devices.success && (devices.data?.length || 0) > 0;
                     const isFingerprintConflict = /device fingerprint already registered/i.test(msg);
+                    const isAdminRevoked = /revoked by an administrator/i.test(msg);
 
                     if (hasBoundDevice) {
                         sessionStorage.removeItem(DEVICE_BIND_ERROR_KEY);
@@ -120,7 +188,9 @@ function AttendanceContent() {
                         setError(
                             isFingerprintConflict
                                 ? `${msg} Please unbind the old account from this device in My Devices, or use another browser/device before check-in.`
-                                : `${msg} Please bind a device in My Devices, then try again.`
+                                : isAdminRevoked
+                                    ? `${msg} Please contact your instructor/admin to restore access, or use another browser/device.`
+                                    : `${msg} Please bind a device in My Devices, then try again.`
                         );
                         setStep('error');
                         return;
@@ -340,10 +410,20 @@ function AttendanceContent() {
             return;
         }
 
+        const finalLivenessImage = explicitLivenessImage || livenessImage;
+        if (livenessRequired && image && finalLivenessImage) {
+            const movementScore = await computeNormalizedFrameDifference(image, finalLivenessImage);
+            const threshold = getChallengeMovementThreshold(issuedChallenge?.type);
+            if (movementScore !== null && movementScore < threshold) {
+                setError('Insufficient movement detected for this liveness challenge. Please follow the instruction and try again.');
+                setStep('error');
+                return;
+            }
+        }
+
         setStep('submitting');
 
         const base64Image = image.replace(/^data:image\/\w+;base64,/, '');
-        const finalLivenessImage = explicitLivenessImage || livenessImage;
         const base64LivenessImage = finalLivenessImage
             ? finalLivenessImage.replace(/^data:image\/\w+;base64,/, '')
             : undefined;

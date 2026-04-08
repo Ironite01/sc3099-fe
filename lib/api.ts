@@ -793,6 +793,8 @@ export async function registerDevice(payload: {
         const lower = parsedMessage.toLowerCase();
         if (lower.includes('device fingerprint already registered to another account')) {
             parsedMessage = 'This browser/device is currently bound to another account. Use that account to remove it first, or use another browser/device.';
+        } else if (lower.includes('revoked by an administrator')) {
+            parsedMessage = 'This browser/device has been revoked by an administrator. Please contact your instructor/admin to restore access or use another browser/device.';
         } else if (res.status === 409) {
             parsedMessage = 'This browser/device is already linked to another account.';
         }

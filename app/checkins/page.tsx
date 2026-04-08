@@ -207,7 +207,7 @@ function CheckinCard({
     const statusLabel = isAppealRejected
         ? 'Appeal Rejected (Final)'
         : isAppealApproved
-            ? 'Approved (After Appeal)'
+            ? 'Approved (Appeal Success)'
             : config.label;
 
     return (
