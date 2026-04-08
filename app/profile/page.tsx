@@ -148,7 +148,10 @@ export default function ProfilePage() {
                                 Face Enrollment
                             </h3>
                             <p className="profile-helper-text">
-                                Current status: {user?.face_enrolled ? 'Enrolled' : 'Not enrolled'}
+                                Current status:{' '}
+                                <span className={user?.face_enrolled ? 'profile-status-enrolled' : 'profile-status-not-enrolled'}>
+                                    {user?.face_enrolled ? 'Enrolled' : 'Not enrolled'}
+                                </span>
                             </p>
                             <button
                                 className="secondary-button"
@@ -164,4 +167,3 @@ export default function ProfilePage() {
         </main>
     );
 }
-

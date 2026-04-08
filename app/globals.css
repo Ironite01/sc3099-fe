@@ -2392,6 +2392,16 @@ body {
   font-size: 0.88rem;
 }
 
+.profile-status-enrolled {
+  color: #22c55e;
+  font-weight: 700;
+}
+
+.profile-status-not-enrolled {
+  color: #ef4444;
+  font-weight: 700;
+}
+
 /* ============================================
    My Devices Page
    ============================================ */
