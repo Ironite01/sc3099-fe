@@ -169,7 +169,7 @@ function EnrollPageContent() {
                 {/* Header */}
                 <div className="enroll-header">
                     {fromRegister && (
-                        <div className="step-indicator">Step 2 of 2 — Account Setup</div>
+                        <div className="step-indicator">Step 2 of 2 - Account Setup</div>
                     )}
                     <div className="logo">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -181,7 +181,7 @@ function EnrollPageContent() {
                     <h1>Face Enrollment</h1>
                     <p className="tagline">
                         {fromRegister
-                            ? 'Last step — set up face recognition for attendance check-ins'
+                            ? 'Last step - set up face recognition for attendance check-ins'
                             : 'Verify your identity for secure check-ins'}
                     </p>
                 </div>

@@ -18,6 +18,50 @@ $paths = @{
     dashboard = Join-Path $root "sc3099-dashboard"
 }
 
+function Get-PostgresContainerName {
+    $names = docker ps -a --format "{{.Names}}" 2>$null
+    if (-not $names) { return $null }
+
+    $candidates = @("sc3099-stack-db-1", "db-1")
+    foreach ($candidate in $candidates) {
+        if ($names -contains $candidate) {
+            return $candidate
+        }
+    }
+
+    return $null
+}
+
+function Ensure-BackendSchema {
+    param(
+        [Parameter(Mandatory = $true)][string]$BackendDir
+    )
+
+    $schemaFile = Join-Path $BackendDir "database_schema.sql"
+    if (-not (Test-Path -LiteralPath $schemaFile)) {
+        Write-Warning "Schema file not found: $schemaFile"
+        return
+    }
+
+    $pgContainer = Get-PostgresContainerName
+    if (-not $pgContainer) {
+        Write-Warning "Postgres container not found. Skipping schema bootstrap."
+        return
+    }
+
+    $checkSql = "SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='audit_logs' LIMIT 1;"
+    $checkResult = docker exec -i $pgContainer psql -U saiv -d saiv -t -A -c $checkSql 2>$null
+
+    if (($checkResult | Out-String).Trim() -eq "1") {
+        Write-Host "Backend schema already present."
+        return
+    }
+
+    Write-Host "Backend schema missing. Applying database_schema.sql..."
+    Get-Content -Raw $schemaFile | docker exec -i $pgContainer psql -U saiv -d saiv | Out-Null
+    Write-Host "Backend schema bootstrap completed."
+}
+
 function Wait-ForHttpHealthy {
     param(
         [Parameter(Mandatory = $true)][string]$Url,
@@ -103,6 +147,7 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 }
 
 if (-not $NoBackend) {
+    Ensure-BackendSchema -BackendDir $paths.backend
     Start-BackendWhenReady -Workdir $paths.backend -ShouldWaitForML (-not $NoML)
 }
 

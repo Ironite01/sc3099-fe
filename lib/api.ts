@@ -481,7 +481,7 @@ export async function submitAttendance(payload: AttendancePayload): Promise<ApiR
             else if (/not active/i.test(raw)) msg = 'This session is not currently active.';
             else if (/geofence/i.test(raw)) msg = 'You are outside the permitted location for this session.';
             else if (/venue location/i.test(raw)) msg = 'This session has no venue configured.';
-            else if (/device not registered/i.test(raw)) msg = 'Your device is not registered. Please try again — registration is automatic.';
+            else if (/device not registered/i.test(raw)) msg = 'Your device is not registered. Please try again. Registration is automatic.';
             else if (/device.*(deactivated|inactive)/i.test(raw)) msg = 'Your device has been deactivated. Please contact your instructor.';
             else if (/device fingerprint.*required/i.test(raw)) msg = 'Device verification is required for this session.';
             else if (/device is not allowed/i.test(raw)) msg = 'This device is not trusted yet. Please use your bound device or contact instructor/admin.';

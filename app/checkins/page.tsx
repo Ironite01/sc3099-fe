@@ -83,10 +83,12 @@ function statusConfig(status: CheckinStatus): { icon: React.ReactNode; color: st
 function AppealForm({
     checkinId,
     onSuccess,
+    onAlreadyAppealed,
     onCancel,
 }: {
     checkinId: string;
     onSuccess: () => void;
+    onAlreadyAppealed: () => void;
     onCancel: () => void;
 }) {
     const [reason, setReason] = useState('');
@@ -112,9 +114,13 @@ function AppealForm({
                 onSuccess();
             }, 1500);
         } else {
+            if ((result.error || '').toLowerCase().includes('already appealed')) {
+                onAlreadyAppealed();
+                return;
+            }
             setError(result.error || 'Failed to submit appeal.');
         }
-    }, [checkinId, reason, onSuccess]);
+    }, [checkinId, reason, onSuccess, onAlreadyAppealed]);
 
     if (success) {
         return (
@@ -138,7 +144,7 @@ function AppealForm({
             </p>
             <textarea
                 className="appeal-textarea"
-                placeholder="e.g. I was physically present in class — my GPS was inaccurate due to building interference."
+                placeholder="e.g. I was physically present in class, my GPS was inaccurate due to building interference."
                 value={reason}
                 onChange={e => setReason(e.target.value)}
                 rows={3}
@@ -197,6 +203,12 @@ function CheckinCard({
     const canAppeal = isAppealable(checkin);
     const hasAppealed = !!checkin.appealed_at;
     const isAppealRejected = hasAppealed && checkin.status === 'rejected';
+    const isAppealApproved = hasAppealed && checkin.status === 'approved';
+    const statusLabel = isAppealRejected
+        ? 'Appeal Rejected (Final)'
+        : isAppealApproved
+            ? 'Approved (After Appeal)'
+            : config.label;
 
     return (
         <div className={`checkin-card ${showAppeal ? 'checkin-card-expanded' : ''}`}>
@@ -220,14 +232,10 @@ function CheckinCard({
                         }}
                     >
                         {config.icon}
-                        {config.label}
+                        {statusLabel}
                     </span>
 
-                    {isAppealRejected ? (
-                        <div className="mt-2 text-[0.8rem] text-red-500/90 font-medium flex items-center gap-1.5 px-2 py-1 bg-red-500/10 rounded-md">
-                            <XCircle size={14} /> Appeal rejected (Final)
-                        </div>
-                    ) : canAppeal && !showAppeal && (
+                    {canAppeal && !showAppeal && (
                         <button
                             type="button"
                             className="checkin-appeal-btn"
@@ -245,6 +253,10 @@ function CheckinCard({
                 <AppealForm
                     checkinId={checkin.id}
                     onCancel={() => setShowAppeal(false)}
+                    onAlreadyAppealed={() => {
+                        setShowAppeal(false);
+                        onStatusChange(checkin.id, 'appealed');
+                    }}
                     onSuccess={() => {
                         setShowAppeal(false);
                         onStatusChange(checkin.id, 'appealed');
