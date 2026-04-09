@@ -2134,6 +2134,23 @@ body {
   gap: 0.2rem;
 }
 
+.dashboard-checkin-status {
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.dashboard-status-approved {
+  color: #22c55e;
+}
+
+.dashboard-status-rejected {
+  color: #ef4444;
+}
+
+.dashboard-status-neutral {
+  color: var(--color-text-primary);
+}
+
 .dashboard-course-meta {
   font-size: 0.75rem;
   color: var(--color-text-muted);

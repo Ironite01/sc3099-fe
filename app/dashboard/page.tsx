@@ -28,6 +28,13 @@ function formatCheckinTimestamp(value: string): string | null {
     }).format(date);
 }
 
+function getDashboardStatusClass(status?: string): string {
+    const normalized = (status || '').toLowerCase();
+    if (normalized === 'approved') return 'dashboard-status-approved';
+    if (normalized === 'rejected' || normalized === 'flagged') return 'dashboard-status-rejected';
+    return 'dashboard-status-neutral';
+}
+
 export default function DashboardPage() {
     const router = useRouter();
     const [user, setUser] = useState<UserType | null>(null);
@@ -235,7 +242,10 @@ export default function DashboardPage() {
                                             <span className="dashboard-course-code">{checkin.course_code}</span>
                                             <div className="dashboard-checkin-details">
                                                 <span className="dashboard-course-name">
-                                                    {checkin.session_name} - {checkin.status}
+                                                    {checkin.session_name} -{' '}
+                                                    <span className={`dashboard-checkin-status ${getDashboardStatusClass(checkin.status)}`}>
+                                                        {checkin.status}
+                                                    </span>
                                                 </span>
                                                 {(((checkin as any).checked_in_at ?? (checkin as any).timestamp) as string | undefined) ? (
                                                     <span className="dashboard-course-meta">

@@ -1,0 +1,126 @@
+name: sc3099-submission
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: saiv
+      POSTGRES_PASSWORD: saiv_password
+      POSTGRES_DB: saiv
+    ports:
+      - "5434:5432"
+    volumes:
+      - sc3099_db_data:/var/lib/postgresql/data
+      - ../sc3099-be/database_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saiv -d saiv"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - sc3099-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - sc3099_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - sc3099-network
+
+  ml:
+    build:
+      context: ../sc3099-ml
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      MOBILEFACENET_MODEL_PATH: /app/app/models/w600k_mbf.onnx
+      FACE_MATCH_THRESHOLD: "0.73"
+      FACE_HASH_SIMILARITY_MIN: "0.67"
+      FACE_SIM_LOGISTIC_CENTER: "0.70"
+      FACE_SIM_LOGISTIC_STEEPNESS: "28.0"
+    volumes:
+      - ../sc3099-ml/app/models:/app/app/models:ro
+    networks:
+      - sc3099-network
+
+  backend:
+    build:
+      context: ../sc3099-be
+      dockerfile: Dockerfile
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8000
+      FRONTEND_URL: http://localhost:3000
+      DASHBOARD_URL: http://localhost:8501
+      ML_URL: http://ml:8001
+      APP_URL: http://localhost:3000
+      DATABASE_URL: postgresql://saiv:saiv_password@db:5432/saiv
+      REDIS_URL: redis://redis:6379
+      SECRET_KEY: super-secret-key-for-local-dev
+      REDIS_LIMIT_HIGH: "true"
+      EMAIL_SMTP_HOST: ${EMAIL_SMTP_HOST:-}
+      EMAIL_SMTP_PORT: ${EMAIL_SMTP_PORT:-587}
+      EMAIL_SMTP_USER: ${EMAIL_SMTP_USER:-}
+      EMAIL_SMTP_PASS: ${EMAIL_SMTP_PASS:-}
+      EMAIL_FROM: ${EMAIL_FROM:-no-reply@saiv.local}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ml:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    networks:
+      - sc3099-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BACKEND_URL: http://backend:8000
+    environment:
+      BACKEND_URL: http://backend:8000
+      NEXT_PUBLIC_BACKEND_URL: ""
+      NODE_ENV: production
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    networks:
+      - sc3099-network
+
+  dashboard:
+    build:
+      context: ../sc3099-dashboard
+      dockerfile: Dockerfile
+    environment:
+      API_BASE_URL: http://backend:8000/api/v1
+      BACKEND_URL: http://backend:8000/api/v1
+      FRONTEND_URL: http://frontend:3000
+    depends_on:
+      - backend
+    ports:
+      - "8501:8501"
+      - "9101:9101"
+    networks:
+      - sc3099-network
+
+volumes:
+  sc3099_db_data:
+  sc3099_redis_data:
+
+networks:
+  sc3099-network:
+    driver: bridge

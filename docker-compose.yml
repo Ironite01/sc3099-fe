@@ -1,0 +1,19 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sc3099-frontend
+    environment:
+      BACKEND_URL: http://backend:8000
+      NEXT_PUBLIC_BACKEND_URL: ""
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    networks:
+      - sc3099-network
+    restart: unless-stopped
+
+networks:
+  sc3099-network:
+    external: true
