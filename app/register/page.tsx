@@ -32,18 +32,6 @@ export default function RegisterPage() {
         return /^[A-Za-zÀ-ÖØ-öø-ÿ\s\.\-']+$/.test(name.trim()) && name.trim().length >= 2 && name.trim().length <= 50;
     };
 
-    const getPasswordStrength = (pwd: string): number => {
-        let score = 0;
-        if (pwd.length >= 8) score++;
-        if (/[A-Z]/.test(pwd)) score++;
-        if (/[a-z]/.test(pwd)) score++;
-        if (/[0-9]/.test(pwd)) score++;
-        if (/[^a-zA-Z0-9]/.test(pwd)) score++;
-        return score;
-    };
-
-    const pwdStrength = getPasswordStrength(password);
-
     const validateForm = (): boolean => {
         let isValid = true;
         setEmailError('');
@@ -78,18 +66,6 @@ export default function RegisterPage() {
             isValid = false;
         } else if (password.length < 8) {
             setPasswordError('Password must be at least 8 characters');
-            isValid = false;
-        } else if (!/[A-Z]/.test(password)) {
-            setPasswordError('Password must include at least one uppercase letter (A-Z)');
-            isValid = false;
-        } else if (!/[a-z]/.test(password)) {
-            setPasswordError('Password must include at least one lowercase letter (a-z)');
-            isValid = false;
-        } else if (!/[0-9]/.test(password)) {
-            setPasswordError('Password must include at least one number (0-9)');
-            isValid = false;
-        } else if (!/[^a-zA-Z0-9]/.test(password)) {
-            setPasswordError('Password must include at least one special character (e.g. !@#$%)');
             isValid = false;
         }
 
@@ -283,7 +259,7 @@ export default function RegisterPage() {
                                     setPassword(e.target.value);
                                     setPasswordError('');
                                 }}
-                                placeholder="Create a strong password"
+                                placeholder="Create a password (min 8 characters)"
                                 className={passwordError ? 'input-error' : ''}
                                 disabled={isLoading}
                                 autoComplete="new-password"
@@ -299,11 +275,6 @@ export default function RegisterPage() {
                             </button>
                         </div>
                         {passwordError && <span className="field-error">{passwordError}</span>}
-                        {password && !passwordError && pwdStrength < 5 && (
-                            <p className="password-hint">
-                                Use 8+ characters with uppercase, lowercase, a number &amp; a symbol.
-                            </p>
-                        )}
                     </div>
 
                     <div className="form-group">

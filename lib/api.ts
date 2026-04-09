@@ -188,7 +188,7 @@ export async function register(payload: RegisterPayload): Promise<{
             if (/already\s*registered|already\s*exists|duplicate/.test(raw)) clean = 'An account with this email already exists';
             else if (/full_name/.test(raw)) clean = 'Please enter your full name (at least 4 characters).';
             else if (/email/.test(raw)) clean = 'Please enter a valid email address.';
-            else if (/password/.test(raw)) clean = 'Password does not meet the requirements.';
+            else if (/password/.test(raw)) clean = 'Password must be at least 8 characters.';
             else if (/required property 'role'|role/.test(raw)) clean = 'Registration role is missing. Please refresh and try again.';
             return { success: false, error: clean, status: 400 };
         }
@@ -203,7 +203,7 @@ export async function register(payload: RegisterPayload): Promise<{
             if (Array.isArray(detail) && detail.length > 0) {
                 const msg = String(detail[0]?.msg || 'Invalid input');
                 if (/email/i.test(msg)) return { success: false, error: 'Please enter a valid email address.', status: 422 };
-                if (/password/i.test(msg)) return { success: false, error: 'Password does not meet the requirements.', status: 422 };
+                if (/password/i.test(msg)) return { success: false, error: 'Password must be at least 8 characters.', status: 422 };
                 if (/full_name/i.test(msg)) return { success: false, error: 'Please enter your full name (at least 4 characters).', status: 422 };
             }
             return { success: false, error: 'Please check your details and try again.', status: 422 };
@@ -286,7 +286,7 @@ export async function resetPassword(token: string, password: string): Promise<{
                 return { success: false, error: 'Password must be at least 8 characters.', status: response.status };
             }
             if (raw.includes('password')) {
-                return { success: false, error: 'Password does not meet the requirements.', status: response.status };
+                return { success: false, error: 'Password must be at least 8 characters.', status: response.status };
             }
             return { success: false, error: data?.detail || data?.message || 'Invalid reset request.', status: response.status };
         }
