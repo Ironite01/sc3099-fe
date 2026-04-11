@@ -20,7 +20,7 @@ services:
   backend:
     image: node:20-alpine
     working_dir: /app
-    command: sh -c "npm install && npm run dev"
+    command: sh -c "npm run dev"
     environment:
       PORT: 8000
       POSTGRES_USERNAME: saiv
@@ -35,22 +35,21 @@ services:
       - "8000:8000"
     volumes:
       - ../sc3099-be:/app
-      - be_node_modules:/app/node_modules
 
   frontend:
     image: node:20-alpine
     working_dir: /app
-    command: sh -c "npm install && npm run dev"
+    command: sh -c "npm run dev"
     environment:
       BACKEND_URL: http://backend:8000
       NEXT_PUBLIC_BACKEND_URL: ""
+      NEXT_DISABLE_SWC: "1"
     depends_on:
       - backend
     ports:
       - "3000:3000"
     volumes:
       - ./:/app
-      - fe_node_modules:/app/node_modules
 
   dashboard:
     build:

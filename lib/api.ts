@@ -732,22 +732,37 @@ export async function appealCheckin(checkinId: string, appealReason: string): Pr
             return { success: true, data };
         }
 
-        if (response.status === 400) {
+        if (response.status === 400 || response.status === 422) {
             const errorData = await response.json().catch(() => ({}));
             const raw: string = errorData.detail || errorData.message || '';
             let msg = raw || 'Unable to submit appeal.';
             if (/already.*appeal/i.test(raw)) msg = 'You have already appealed this check-in.';
             else if (/window.*expired|7 day/i.test(raw)) msg = 'The appeal window (7 days) has expired for this check-in.';
             else if (/cannot.*appeal|only.*rejected|only.*flagged/i.test(raw)) msg = 'Only rejected or flagged check-ins can be appealed.';
-            return { success: false, error: msg, status: 400 };
+            else if (/minlength|at least 5|required/i.test(raw)) msg = 'Appeal reason must be at least 5 characters.';
+            return { success: false, error: msg, status: response.status };
         }
 
         if (response.status === 401) {
             return { success: false, error: 'Please log in first', status: 401 };
         }
 
+        if (response.status === 403) {
+            return { success: false, error: 'Only student accounts can submit appeals.', status: 403 };
+        }
+
         if (response.status === 404) {
             return { success: false, error: 'Check-in not found', status: 404 };
+        }
+
+        if (response.status === 429) {
+            return { success: false, error: 'Too many requests. Please wait a moment and try again.', status: 429 };
+        }
+
+        const genericErrorData = await response.json().catch(() => ({}));
+        const genericMsg = genericErrorData.detail || genericErrorData.message;
+        if (genericMsg) {
+            return { success: false, error: genericMsg, status: response.status };
         }
 
         return { success: false, error: 'Failed to submit appeal', status: response.status };

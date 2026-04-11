@@ -102,6 +102,10 @@ function AppealForm({
             setError('Please provide a reason for your appeal.');
             return;
         }
+        if (trimmed.length < 5) {
+            setError('Appeal reason must be at least 5 characters.');
+            return;
+        }
         setSubmitting(true);
         setError(null);
 
@@ -171,7 +175,7 @@ function AppealForm({
                     type="button"
                     className="primary-button appeal-submit-btn"
                     onClick={handleSubmit}
-                    disabled={submitting || !reason.trim()}
+                    disabled={submitting || reason.trim().length < 5}
                 >
                     {submitting ? (
                         <>

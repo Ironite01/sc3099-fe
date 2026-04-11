@@ -109,6 +109,9 @@ services:
       API_BASE_URL: http://backend:8000/api/v1
       BACKEND_URL: http://backend:8000/api/v1
       FRONTEND_URL: http://frontend:3000
+      PROMETHEUS_URL: http://prometheus:9090
+      GRAFANA_URL: http://localhost:3001
+      GRAFANA_DASHBOARD_UID: saiv-dashboard-v1
     depends_on:
       - backend
     ports:
